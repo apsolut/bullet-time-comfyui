@@ -1,0 +1,37 @@
+{
+ "_comment": "Bindings for workflows/bullettime_orbit-right_api.json (built by bullettime/workflows.py): LTX-2.3 22B dev fp8 + distilled LoRA 0.6, two stages, 65 frames @ 24 fps. 'real' is the frozen frame (in place at frame 0, or a guide), every other key is an LTXVAddGuide keyframe at frames [0, 32, 64].",
+ "prompt": [
+  [
+   "5",
+   "text"
+  ]
+ ],
+ "seed": [
+  [
+   "13",
+   "noise_seed"
+  ],
+  [
+   "33",
+   "noise_seed"
+  ]
+ ],
+ "real": [
+  [
+   "100",
+   "image"
+  ]
+ ],
+ "fr": [
+  [
+   "101",
+   "image"
+  ]
+ ],
+ "r": [
+  [
+   "102",
+   "image"
+  ]
+ ]
+}

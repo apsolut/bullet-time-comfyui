@@ -1,0 +1,49 @@
+{
+ "_comment": "Bindings for workflows/bullettime_sweep_api.json (built by bullettime/workflows.py): LTX-2.3 22B dev fp8 + distilled LoRA 0.6, two stages, 97 frames @ 24 fps. 'real' is the frozen frame (in place at frame 0, or a guide), every other key is an LTXVAddGuide keyframe at frames [0, 24, 48, 72, 96].",
+ "prompt": [
+  [
+   "5",
+   "text"
+  ]
+ ],
+ "seed": [
+  [
+   "13",
+   "noise_seed"
+  ],
+  [
+   "33",
+   "noise_seed"
+  ]
+ ],
+ "l": [
+  [
+   "100",
+   "image"
+  ]
+ ],
+ "fl": [
+  [
+   "101",
+   "image"
+  ]
+ ],
+ "real": [
+  [
+   "102",
+   "image"
+  ]
+ ],
+ "fr": [
+  [
+   "103",
+   "image"
+  ]
+ ],
+ "r": [
+  [
+   "104",
+   "image"
+  ]
+ ]
+}

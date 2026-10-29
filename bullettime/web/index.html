@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bullet Time</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='none' stroke='%2300e0a4' stroke-width='3' stroke-dasharray='6 4'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%2300e0a4'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#0b0d10;--card:#14181d;--line:#232a32;--fg:#e8edf2;--dim:#8a96a3;--acc:#00e0a4;--acc2:#7cf0ff;--bad:#ff6b6b;--r:14px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:980px;margin:0 auto;padding:24px 16px 80px}
+h1{font-size:30px;letter-spacing:-.02em;margin:8px 0 2px}
+h1 span{color:var(--acc)}
+.sub{color:var(--dim);margin:0 0 22px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;margin:14px 0}
+.card h2{font-size:15px;margin:0 0 12px;color:var(--dim);font-weight:600;text-transform:uppercase;letter-spacing:.08em}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+input[type=text],input[type=password]{flex:1;min-width:200px;background:#0e1115;border:1px solid var(--line);color:var(--fg);border-radius:10px;padding:10px 12px;font:inherit}
+button{background:#1d242c;border:1px solid var(--line);color:var(--fg);border-radius:10px;padding:10px 14px;font:inherit;cursor:pointer}
+button:hover{border-color:#3a4652}
+button.go{background:var(--acc);color:#04120d;border:0;font-weight:700}
+button:disabled{opacity:.45;cursor:default}
+.drop{border:2px dashed #2c3640;border-radius:var(--r);padding:34px;text-align:center;color:var(--dim);cursor:pointer}
+.drop.over{border-color:var(--acc);color:var(--fg)}
+.stage{display:grid;grid-template-columns:minmax(0,320px) 1fr;gap:18px}
+@media (max-width:760px){.stage{grid-template-columns:1fr}}
+video{width:100%;border-radius:12px;background:#000;max-height:70vh}
+canvas{width:100%;height:70px;display:block;border-radius:8px;background:#0e1115;cursor:crosshair}
+.arcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.arc{border:1px solid var(--line);border-radius:12px;padding:10px;cursor:pointer;background:#0f1317}
+.arc b{display:block;font-size:14px}
+.arc small{color:var(--dim)}
+.arc.on{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc) inset}
+.arc.off{opacity:.35;pointer-events:none}
+.pill{display:inline-block;border:1px solid var(--line);border-radius:99px;padding:2px 10px;font-size:13px;color:var(--dim)}
+.steps{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.step{padding:6px 12px;border-radius:99px;border:1px solid var(--line);color:var(--dim);font-size:13px}
+.step.run{border-color:var(--acc2);color:var(--acc2)}
+.step.done{border-color:var(--acc);color:var(--acc)}
+.stills{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}
+@media (max-width:760px){.stills{grid-template-columns:repeat(4,1fr)}}
+.stills figure{margin:0;position:relative}
+.stills img{width:100%;aspect-ratio:9/16;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.stills figcaption{font-size:11px;color:var(--dim);text-align:center}
+.stills .bad img{border-color:var(--bad);opacity:.5}
+.err{color:var(--bad);white-space:pre-wrap}
+.hidden{display:none!important}
+a{color:var(--acc2)}
+.muted{color:var(--dim);font-size:13px}
+label.inline{display:flex;gap:8px;align-items:center;color:var(--dim)}
+</style>
+</head>
+<body>
+<main>
+  <h1>Bullet <span>Time</span></h1>
+  <p class="sub">One phone shot. Freeze any moment and fly the camera around it, then the take carries on. Open weights on ComfyUI: Qwen-Image-Edit 2511 + LTX-2.3.</p>
+
+  <section class="card" id="keyCard">
+    <h2>1 · Comfy Cloud key</h2>
+    <div class="row">
+      <input type="password" id="key" placeholder="Paste your Comfy Cloud API key" autocomplete="off">
+      <button id="keyCheck">Check</button>
+    </div>
+    <p class="muted" id="keyMsg">Stored only in this browser. Get one at <a href="https://platform.comfy.org/profile/api-keys" target="_blank" rel="noopener">platform.comfy.org</a>. About $0.10 per bullet time; picking the moment and re-rendering are free.</p>
+  </section>
+
+  <section class="card" id="uploadCard">
+    <h2>2 · Your take</h2>
+    <div class="drop" id="drop">Drop a short video here (up to 30 s), or click to pick one.<br><span class="muted">Best: one person doing something with a clear peak: a jump, a hair flip, a throw, a splash.</span></div>
+    <input type="file" id="file" accept="video/*" class="hidden">
+    <p class="err" id="upErr"></p>
+  </section>
+
+  <section class="card hidden" id="pickCard">
+    <h2>3 · Freeze moment and camera</h2>
+    <div class="stage">
+      <div><video id="take" controls playsinline muted></video></div>
+      <div>
+        <canvas id="curve" width="900" height="140" title="motion × sharpness: click to jump"></canvas>
+        <div class="row" style="margin:10px 0 16px">
+          <button id="freezeHere">Freeze at current frame</button>
+          <button id="freezeAuto">Auto pick</button>
+          <span class="pill" id="freezeAt">freeze at –</span>
+        </div>
+        <div class="arcs" id="arcs"></div>
+        <div class="row" style="margin-top:14px">
+          <input type="text" id="subject" placeholder="Who is frozen? (optional) e.g. the woman in the red jacket" maxlength="120">
+        </div>
+        <div class="row" style="margin-top:10px">
+          <label class="inline"><input type="checkbox" id="whoosh" checked> Generated whoosh sound during the freeze</label>
+        </div>
+        <div class="row" style="margin-top:16px">
+          <button class="go" id="generate">Generate bullet time</button>
+          <span class="muted" id="estimate"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card hidden" id="runCard">
+    <h2>4 · Making it</h2>
+    <div class="steps"><span class="step" data-s="stills">8 views of the moment · Qwen</span><span class="step" data-s="orbit">camera through frozen time · LTX-2.3</span><span class="step" data-s="render">splice into your take</span></div>
+    <p class="muted" id="runMsg"></p>
+    <p class="err" id="runErr"></p>
+  </section>
+
+  <section class="card hidden" id="resultCard">
+    <h2>Result</h2>
+    <div class="stage">
+      <div><video id="result" controls playsinline loop></video></div>
+      <div>
+        <div class="row">
+          <a id="dl" download><button class="go">Download video</button></a>
+          <a id="dlLoop" download><button>Download freeze loop</button></a>
+          <a id="dlWf"><button>ComfyUI workflows</button></a>
+        </div>
+        <div class="row" style="margin-top:14px">
+          <button id="reroll">Re-roll the orbit</button>
+          <button id="newStills">New views + orbit</button>
+        </div>
+        <div class="row" style="margin-top:14px">
+          <label class="inline">Slow-mo ramp <input type="range" id="ramp" min="0" max="1.2" step="0.1" value="0.4"> <span id="rampV">0.4 s</span></label>
+          <button id="rerender">Re-render (free)</button>
+        </div>
+        <p class="muted" id="orbitInfo"></p>
+      </div>
+    </div>
+    <h2 style="margin-top:18px">Views of the frozen moment</h2>
+    <div class="stills" id="stills"></div>
+  </section>
+  <p class="muted">Open source (MIT): <a href="https://github.com/apsolut/bullet-time-comfyui">github.com/apsolut/bullet-time-comfyui</a> · #OpenSourceHiggsfield · Only use your own face or someone who agreed.</p>
+</main>
+<script src="/web/app.js"></script>
+</body>
+</html>

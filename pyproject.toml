@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bullettime"
+version = "0.1.0"
+description = "Bullet time from one phone shot: freeze any moment and orbit the camera around it, with open-weights ComfyUI workflows"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [{name = "Aleksandar Perisic"}]
+requires-python = ">=3.10"
+dependencies = ["numpy", "requests", "opencv-python-headless<5", "Pillow>=10",
+                "fastapi>=0.110", "uvicorn>=0.29", "python-multipart>=0.0.9"]
+
+[project.optional-dependencies]
+dev = ["pytest", "httpx"]
+
+[project.scripts]
+bullettime = "bullettime.cli:main"
+
+[tool.setuptools]
+packages = ["bullettime"]
+
+[tool.setuptools.package-data]
+bullettime = ["web/*"]

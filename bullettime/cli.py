@@ -1,0 +1,141 @@
+"""bullettime CLI.
+
+    bullettime run take.mp4 --arc sweep            # everything: pick, stills, orbit, render (~$0.10)
+    bullettime analyze take.mp4                    # free: where would it freeze?
+    bullettime -P work new take.mp4 --t 2.4        # step by step, in project folder work/
+    bullettime -P work stills | orbit --arc orbit-left | render --ramp 0.6
+    bullettime workflow --arc sweep > sweep_api.json   # the exact LTX graph, for ComfyUI
+    bullettime serve                               # web app on http://127.0.0.1:8790
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+from . import arcs, comfy, pick, pipeline, workflows
+
+
+def _log(msg: str) -> None:
+    print(msg, flush=True)
+
+
+def _status(rec: dict) -> None:
+    print(f"  {rec.get('status')} {rec.get('prompt_id', '')}", flush=True)
+
+
+def _project(args) -> pipeline.Project:
+    p = pipeline.Project(args.project)
+    if not p.state:
+        sys.exit(f"error: no project in {args.project} (run `bullettime -P {args.project} new VIDEO` first)")
+    return p
+
+
+def main(argv=None) -> None:
+    ap = argparse.ArgumentParser(prog="bullettime", description="Bullet time from one phone shot (ComfyUI, open weights)")
+    ap.add_argument("-P", "--project", default="work", help="project folder (default: work)")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+
+    a = sub.add_parser("analyze", help="pick the freeze moment (free)")
+    a.add_argument("video")
+
+    n = sub.add_parser("new", help="start a project from a take (free)")
+    n.add_argument("video")
+    n.add_argument("--t", type=float, help="freeze at this time in seconds (default: auto)")
+
+    s = sub.add_parser("stills", help="8 views of the frozen frame (1 Qwen job)")
+    s.add_argument("--t", type=float)
+    s.add_argument("--seed", type=int)
+
+    for name, hlp in (("orbit", "the camera move through frozen time (1 LTX job)"),
+                      ("run", "new + stills + orbit + render in one go")):
+        o = sub.add_parser(name, help=hlp)
+        if name == "run":
+            o.add_argument("video")
+            o.add_argument("--t", type=float)
+            o.add_argument("--out", help="copy the result here")
+        o.add_argument("--arc", default=arcs.DEFAULT_ARC, choices=list(arcs.ARCS))
+        o.add_argument("--seed", type=int)
+        o.add_argument("--subject", default="", help='who is frozen, e.g. "the woman in the red jacket"')
+        o.add_argument("--sound", default="whoosh", choices=["whoosh", "silent"])
+        o.add_argument("--dry-run", action="store_true", help="print the plan and cost, spend nothing")
+
+    r = sub.add_parser("render", help="splice the orbit into the take (free)")
+    r.add_argument("--ramp", type=float, default=0.4, help="slow-mo ramp into the freeze, seconds (0 = off)")
+    r.add_argument("--slow", type=float, default=3.0, help="ramp slow-down factor")
+    r.add_argument("--sound", choices=["whoosh", "silent"])
+
+    w = sub.add_parser("workflow", help="print the LTX orbit graph (API format)")
+    w.add_argument("--arc", default=arcs.DEFAULT_ARC, choices=list(arcs.ARCS))
+    w.add_argument("--width", type=int, default=704)
+    w.add_argument("--height", type=int, default=1280)
+
+    sv = sub.add_parser("serve", help="run the web app")
+    sv.add_argument("--host", default="127.0.0.1")
+    sv.add_argument("--port", type=int, default=8790)
+    sv.add_argument("--data", default=str(Path.home() / ".bullettime"))
+
+    sub.add_parser("arcs", help="list the camera arcs")
+    args = ap.parse_args(argv)
+
+    if args.cmd == "analyze":
+        res = pick.analyze(args.video)
+        print(json.dumps({k: res[k] for k in ("t", "frame", "fps", "duration")}, indent=2))
+    elif args.cmd == "arcs":
+        for k, v in arcs.ARCS.items():
+            print(f"{k:12s} {v['label']:36s} keys={v['keys']}  freeze={arcs.freeze_seconds(k)}s")
+    elif args.cmd == "workflow":
+        wf, _ = workflows.build_orbit(args.arc, args.width, args.height)
+        wf["5"]["inputs"]["text"] = workflows.orbit_prompt(args.arc)
+        print(json.dumps(wf, indent=1))
+    elif args.cmd == "new":
+        p = pipeline.new_project(args.video, Path(args.project).parent, Path(args.project).name)
+        if args.t is not None:
+            p.state["t"] = args.t; p.save()
+        print(f"project {p.dir}: freeze at {p.state['t']:.2f}s (auto pick {p.state['analysis']['t']:.2f}s)")
+    elif args.cmd == "stills":
+        p = _project(args)
+        st = pipeline.stills(p, args.t, seed=args.seed, log=_log, on_status=_status)
+        for v, rec in st["views"].items():
+            print(f"  {v:3s} {'ok ' if rec['ok'] else 'BAD'} {rec['path']} {'' if rec['ok'] else rec['reason']}")
+    elif args.cmd in ("orbit", "run"):
+        if args.cmd == "run":
+            proj = Path(args.project)
+            p = pipeline.new_project(args.video, proj.parent, proj.name)
+            if args.t is not None:
+                p.state["t"] = args.t; p.save()
+            print(f"freeze at {p.state['t']:.2f}s")
+        else:
+            p = _project(args)
+        est = pipeline.estimate(p)
+        print(f"{args.arc}: {' + '.join(est['jobs'])} ≈ ${est['usd']:.3f} on Comfy Cloud, "
+              f"freeze lasts {arcs.freeze_seconds(args.arc)}s")
+        if args.dry_run:
+            return
+        if not comfy.env_key():
+            sys.exit("error: set COMFY_API_KEY (https://platform.comfy.org/profile/api-keys)")
+        if "stills" in est["jobs"]:
+            pipeline.stills(p, seed=args.seed, log=_log, on_status=_status)
+            bad = {v: r["reason"] for v, r in p.state["stills"]["views"].items() if not r["ok"]}
+            if bad:
+                print(f"  rejected stills: {bad}")
+        pipeline.orbit(p, args.arc, seed=args.seed, subject=args.subject, sound=args.sound, log=_log, on_status=_status)
+        if args.cmd == "run":
+            rep = pipeline.render(p, log=_log)
+            out = p.path(rep["out"])
+            if args.out:
+                Path(args.out).write_bytes(out.read_bytes()); out = Path(args.out)
+            print(f"done: {out} ({rep['duration']:.1f}s)")
+    elif args.cmd == "render":
+        p = _project(args)
+        rep = pipeline.render(p, ramp_s=args.ramp, ramp_slow=args.slow, sound=args.sound, log=_log)
+        print(f"done: {p.path(rep['out'])} ({rep['duration']:.1f}s), loop: {p.path(rep['orbit_only'])}")
+    elif args.cmd == "serve":
+        import uvicorn
+        from .server import create_app
+        uvicorn.run(create_app(args.data), host=args.host, port=args.port)
+
+
+if __name__ == "__main__":
+    main()
