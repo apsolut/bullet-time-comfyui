@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bullettime"
-version = "0.1.0"
+version = "0.3.0"
 description = "Bullet time from one phone shot: freeze any moment and orbit the camera around it, with open-weights ComfyUI workflows"
 readme = "README.md"
 license = {text = "MIT"}

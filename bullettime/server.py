@@ -31,7 +31,7 @@ from . import arcs, comfy, eyes, hosted as hosted_mod, pipeline, workflows
 WEB = Path(__file__).resolve().parent / "web"
 MAX_UPLOAD_MB = int(os.environ.get("BULLETTIME_MAX_UPLOAD_MB", "200"))
 MAX_UPLOAD_S = float(os.environ.get("BULLETTIME_MAX_UPLOAD_S", "30"))
-VERSION = "0.2.0"
+VERSION = "0.3.0"
 
 
 def create_app(data_dir: str | Path):
