@@ -48,9 +48,9 @@ nav .gh{display:inline-flex;align-items:center;color:var(--fg)!important;border:
 .hero .wrap{position:relative;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:48px;align-items:center}
 .tag{display:inline-flex;flex-wrap:wrap;gap:8px}
 .chip{font:600 11.5px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mut);border:1px solid var(--line2);border-radius:99px;padding:7px 11px;text-decoration:none}
-.new{display:flex;width:fit-content;align-items:center;gap:10px;margin-bottom:16px;padding:5px 14px 5px 5px;border-radius:99px;border:1px solid rgba(36,223,165,.45);background:rgba(36,223,165,.08);color:var(--fg);font-size:14px;font-weight:500;text-decoration:none}
-.new b{font:700 11px/1 var(--mono);letter-spacing:.08em;background:var(--acc);color:#04120d;border-radius:99px;padding:5px 9px}
-.new:hover{border-color:var(--acc)}
+.new{display:flex;width:fit-content;align-items:center;gap:10px;margin-bottom:16px;padding:5px 14px 5px 5px;border-radius:99px;border:1px solid rgba(167,139,250,.5);background:rgba(167,139,250,.12);color:var(--fg);font-size:14px;font-weight:500;text-decoration:none}
+.new b{font:700 11px/1 var(--mono);letter-spacing:.08em;background:#a78bfa;color:#140b2e;border-radius:99px;padding:5px 9px}
+.new:hover{border-color:#a78bfa}
 .chip.on{color:var(--acc);border-color:rgba(36,223,165,.45)}
 h1{font-size:clamp(40px,6.4vw,76px);line-height:1;margin:22px 0 20px;font-weight:800;letter-spacing:-.035em}
 h1 em{font-style:normal;background:linear-gradient(92deg,var(--acc) 10%,var(--acc2) 90%);-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -202,7 +202,7 @@ footer a{color:var(--mut)}
 <header class="hero" id="top">
   <div class="wrap">
     <div>
-      <a class="new" href="#models"><b>NEW</b>We support LTX 2.5</a>
+      <a class="new" href="#models"><b>NEW</b><span style="color:#c4b5fd">We support LTX 2.5</span></a>
       <div class="tag">
         <a class="chip on" href="https://comfy.org/open-source-higgsfield">#OpenSourceHiggsfield</a>
         <span class="chip">ComfyUI</span>
