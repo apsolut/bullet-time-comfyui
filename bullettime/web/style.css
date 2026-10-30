@@ -175,6 +175,10 @@ canvas#curve{width:100%;height:64px;display:block;cursor:crosshair}
 .curve-l{display:flex;justify-content:space-between;font-size:11.5px;color:var(--dim);margin-top:4px}
 .curve-l b{color:var(--acc);font-weight:600}
 .freeze-row{margin:10px 0 0}
+/* the playhead moved away from the frozen frame: the Freeze button lights up in the accent and pulses twice */
+#freezeHere.armed{background:var(--acc);border-color:var(--acc);color:var(--acc-ink);animation:nudge 1s ease-out 2}
+@media (hover:hover){#freezeHere.armed:hover{background:var(--acc);border-color:var(--acc);filter:brightness(1.08)}}
+@keyframes nudge{0%{box-shadow:0 0 0 0 rgba(36,223,165,.6)}60%{box-shadow:0 0 0 12px rgba(36,223,165,0)}100%{box-shadow:0 0 0 0 rgba(36,223,165,0)}}
 .pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line2);border-radius:99px;padding:5px 11px;font-size:13px;color:var(--text);background:var(--panel2);font-weight:600}
 .pill .pp-dot{background:var(--acc)}
 .field-l{font-size:13px;font-weight:650;margin:18px 0 8px;display:flex;align-items:center;gap:8px}

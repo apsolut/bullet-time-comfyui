@@ -319,10 +319,24 @@ $("curve").onclick = (e) => {
   $("take").currentTime = ((e.clientX - r.left) / r.width) * P.analysis.duration;
 };
 $("take").ontimeupdate = () => P && drawCurve();
-$("take").onseeked = () => P && drawCurve();
+$("take").onseeked = () => { if (P) { drawCurve(); armFreeze(); } };
+$("take").onpause = () => P && armFreeze();
+$("take").onplay = () => $("freezeHere").classList.remove("armed");
+
+// Users scrubbed to a moment and waited: nothing told them to press Freeze. When the paused playhead sits away
+// from the frozen frame, the button takes the accent colour and pulses twice (again after every new seek).
+function armFreeze() {
+  const b = $("freezeHere"), v = $("take");
+  const away = !v.paused ? false : !isNaN(v.currentTime) && Math.abs(v.currentTime - P.t) > 0.05;
+  b.classList.remove("armed");
+  if (!away) return;
+  void b.offsetWidth;  // restart the two pulses
+  b.classList.add("armed");
+}
 
 async function setFreeze(t) {
   P = await api("PATCH", `/api/projects/${P.id}`, {t});
+  $("freezeHere").classList.remove("armed");
   showPick();
 }
 $("freezeHere").onclick = () => { const v = $("take"); v.pause(); setFreeze(v.currentTime); };
