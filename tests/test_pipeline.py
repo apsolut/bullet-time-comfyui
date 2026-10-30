@@ -370,3 +370,12 @@ def test_server_hosted_flow(take, tmp_path, monkeypatch):
     assert c.post("/api/key/check", headers={"X-Judge-Code": "judge-code-for-tests"}).json()["judge_jobs_left"] == 8
     # explicit "key" mode with no key never falls back to the operator's credits
     assert c.post(f"/api/projects/{pid2}/generate", json={"arc": "sweep", "confirm": True}, headers={"X-Pay-Mode": "key"}).status_code == 403
+    # a public share page with the loop, the full take, a poster and OG tags; the link survives the project
+    sh = c.post(f"/api/projects/{pid2}/share").json()
+    assert sh["url"].startswith("/s/") and c.post(f"/api/projects/{pid2}/share").json()["url"] == sh["url"]
+    page = c.get(sh["url"]).text
+    assert 'og:video' in page and sh["url"] + "/loop.mp4" in page and "Orbit left" in page
+    assert c.get(sh["url"] + "/poster.jpg").headers["content-type"] == "image/jpeg"
+    assert c.get(sh["url"] + "/full.mp4").status_code == 200 and c.get("/s/nope").status_code == 404
+    c.delete(f"/api/projects/{pid2}")
+    assert c.get(sh["url"] + "/loop.mp4").status_code == 200

@@ -213,7 +213,8 @@ def usable_views(p: Project) -> set[str]:
 
 def orbit(p: Project, arc: str = arcs.DEFAULT_ARC, key=None, seed: int | None = None, subject: str = "",
           sound: str = "whoosh", log: Log = _noop, on_status: Callable[[dict], None] | None = None,
-          guide: float = workflows.GUIDE_STRENGTH, color_match: float = 0.0, select: bool = True) -> dict:
+          guide: float = workflows.GUIDE_STRENGTH, color_match: float = 0.0, select: bool = True,
+          id_lora: float = 0.0, engine: str = "ltx23") -> dict:
     """One LTX orbit job. select=False only records it under state["orbits"] (see variants())."""
     if arc not in arcs.ARCS:
         raise ValueError(f"unknown arc {arc!r} (one of {', '.join(arcs.ARCS)})")
@@ -225,22 +226,29 @@ def orbit(p: Project, arc: str = arcs.DEFAULT_ARC, key=None, seed: int | None = 
         raise ValueError(f"{arc}: its end view has no usable still; re-roll the stills or pick another arc")
     keys = [k for k in arcs.ARCS[arc]["keys"] if arcs.is_real(k) or k in ok]
     w, h = workflows.orbit_size(p.state["info"]["width"], p.state["info"]["height"])
-    wf, bindings = workflows.build_orbit(arc, w, h, guide_strength=guide, keys=keys, color_match=color_match)
+    if engine not in workflows.ENGINES:
+        raise ValueError(f"unknown engine {engine!r} (one of {', '.join(workflows.ENGINES)})")
+    wf, bindings = workflows.build_orbit(arc, w, h, guide_strength=guide, keys=keys, color_match=color_match,
+                                        id_lora=id_lora, engine=engine)
     seed = random.randint(0, 2**48) if seed is None else seed
     values = {"prompt": workflows.orbit_prompt(arc, subject, sound), "seed": seed, "real": str(p.path(p.state["real"]))}
     for k in keys:
         if not arcs.is_real(k):
             values[k] = str(p.path(st["views"][k]["path"]))
     out_dir = p.path(f"orbits/{arc}_{seed}")
+    n_ = 2
+    while out_dir.exists():  # same seed, other settings (guide, colour match, LoRA): never overwrite an orbit
+        out_dir = p.path(f"orbits/{arc}_{seed}_{n_}")
+        n_ += 1
     dropped = [k for k in arcs.ARCS[arc]["keys"] if k not in keys]
-    log(f"orbit: 1 LTX-2.3 job, {arc}, {arcs.frames(arc)} frames, keys {keys}" + (f" (dropped {dropped})" if dropped else ""))
+    log(f"orbit: 1 {'LTX-2.5' if engine == 'ltx25' else 'LTX-2.3'} job, {arc}, {arcs.frames(arc)} frames, keys {keys}" + (f" (dropped {dropped})" if dropped else ""))
     rec = _paid(p, "orbit", key, lambda: comfy.run_workflow(wf, bindings, values, out_dir, key, on_status=on_status))
     vids = [o for o in rec.get("outputs", []) if o.lower().endswith(comfy.VIDEO_EXT)]
     if rec["status"] != "success" or not vids:
         raise comfy.ComfyError(f"orbit job failed: {rec.get('error', rec['status'])}")
     clip = Path(vids[0]).rename(out_dir / "orbit.mp4")
     o = {"arc": arc, "seed": seed, "keys": keys, "dropped": dropped, "subject": subject, "sound": sound,
-         "guide": guide, "color_match": color_match, "prompt_id": rec["prompt_id"],
+         "guide": guide, "color_match": color_match, "id_lora": id_lora, "engine": engine, "prompt_id": rec["prompt_id"],
          "path": str(clip.relative_to(p.dir)), "t": p.state["t"], "made": time.time()}
     with _state_lock:
         orbits = [x for x in p.state.get("orbits", []) if x.get("path") != o["path"]]

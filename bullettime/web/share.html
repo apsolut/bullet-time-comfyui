@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bullet Time</title>
+<meta name="description" content="One phone shot, frozen, with the camera flying around it. Made with Bullet Time (open weights on ComfyUI).">
+<meta property="og:type" content="video.other">
+<meta property="og:title" content="Bullet Time: a frozen moment, seen from every side">
+<meta property="og:description" content="One phone shot, frozen, with the camera flying around it. Make yours for free.">
+<meta property="og:url" content="{{URL}}">
+<meta property="og:image" content="{{URL}}/poster.jpg">
+<meta property="og:video" content="{{URL}}/loop.mp4">
+<meta property="og:video:secure_url" content="{{URL}}/loop.mp4">
+<meta property="og:video:type" content="video/mp4">
+<meta property="og:video:width" content="{{W}}">
+<meta property="og:video:height" content="{{H}}">
+<meta name="twitter:card" content="player">
+<meta name="twitter:title" content="Bullet Time: a frozen moment, seen from every side">
+<meta name="twitter:image" content="{{URL}}/poster.jpg">
+<meta name="twitter:player" content="{{URL}}">
+<meta name="twitter:player:width" content="{{W}}">
+<meta name="twitter:player:height" content="{{H}}">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='none' stroke='%2300e0a4' stroke-width='3' stroke-dasharray='6 4'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%2300e0a4'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#0b0d10;--card:#14181d;--line:#232a32;--fg:#e8edf2;--dim:#8a96a3;--acc:#00e0a4;--acc2:#7cf0ff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+main{flex:1;max-width:980px;width:100%;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:26px;letter-spacing:-.02em;margin:6px 0 2px}
+h1 span{color:var(--acc)}
+.sub{color:var(--dim);margin:0 0 18px}
+.stage{display:grid;grid-template-columns:minmax(0,380px) 1fr;gap:20px;align-items:start}
+@media (max-width:760px){.stage{grid-template-columns:1fr}}
+video{width:100%;border-radius:14px;background:#000;max-height:80vh;border:1px solid var(--line)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+a.btn,button{display:inline-block;background:#1d242c;border:1px solid var(--line);color:var(--fg);border-radius:10px;padding:10px 14px;font:inherit;cursor:pointer;text-decoration:none}
+a.btn.go{background:var(--acc);color:#04120d;border:0;font-weight:700}
+a{color:var(--acc2)}
+.muted{color:var(--dim);font-size:13px}
+.tabs{display:flex;gap:8px;margin-bottom:10px}
+.tabs button.on{border-color:var(--acc);color:var(--acc)}
+footer{color:var(--dim);font-size:13px;text-align:center;padding:16px}
+</style>
+</head>
+<body>
+<main>
+  <h1>Bullet <span>Time</span></h1>
+  <p class="sub">One phone shot. The moment is frozen and the camera flies around it, then the take carries on.</p>
+  <div class="stage">
+    <div>
+      <div class="tabs"><button id="tLoop" class="on">Freeze loop</button><button id="tFull">Full take</button></div>
+      <video id="v" src="{{URL}}/loop.mp4" poster="{{URL}}/poster.jpg" controls autoplay loop muted playsinline></video>
+    </div>
+    <div class="card">
+      <h2 style="margin:0 0 6px;font-size:18px">{{ARC}} · frozen at {{T}} s</h2>
+      <p class="muted">8 views of the frozen frame by Qwen-Image-Edit 2511, the camera move through frozen time by LTX-2.3, spliced back into the real take. Open weights on ComfyUI, no closed APIs.</p>
+      <div class="row">
+        <a class="btn go" href="{{SITE}}">Make your own, free</a>
+        <button id="copy">Copy link</button>
+        <a class="btn" href="{{URL}}/loop.mp4" download>Download loop</a>
+        <a class="btn" href="{{URL}}/full.mp4" download>Download full</a>
+      </div>
+      <p class="muted" style="margin-top:14px">#OpenSourceHiggsfield · <a href="https://github.com/apsolut/bullet-time-comfyui">open source on GitHub</a></p>
+    </div>
+  </div>
+</main>
+<footer>Only use your own face, or the face of someone who agreed.</footer>
+<script>
+const v = document.getElementById("v"), tl = document.getElementById("tLoop"), tf = document.getElementById("tFull");
+function pick(loop) {
+  tl.classList.toggle("on", loop); tf.classList.toggle("on", !loop);
+  v.src = loop ? "{{URL}}/loop.mp4" : "{{URL}}/full.mp4"; v.loop = loop; v.muted = loop; v.play().catch(() => {});
+}
+tl.onclick = () => pick(true); tf.onclick = () => pick(false);
+document.getElementById("copy").onclick = async () => {
+  try { await navigator.clipboard.writeText(location.href); document.getElementById("copy").textContent = "Copied"; } catch { prompt("Copy this link", location.href); }
+};
+</script>
+</body>
+</html>

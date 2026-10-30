@@ -14,9 +14,11 @@ Who pays for a job is decided per request by `X-Pay-Mode` (key | promo | trial) 
 `X-Judge-Code`; jobs are reserved before the run and refunded for whatever never reached Comfy Cloud.
 """
 
+import html
 import io
 import json
 import os
+import secrets
 import shutil
 import threading
 import time
@@ -445,6 +447,64 @@ def create_app(data_dir: str | Path):
                                      "Queue one with POST /api/prompt, or load it in ComfyUI.\n")
         return Response(buf.getvalue(), media_type="application/zip",
                         headers={"Content-Disposition": f'attachment; filename="bullettime_{pid}_workflows.zip"'})
+
+    # ---------- public share pages: /s/<token> (survive the project TTL; the files are copied, not linked)
+    shares = data / "shares"
+    site_url = (os.environ.get("BULLETTIME_SITE_URL") or "").rstrip("/")
+
+    def base_url(request: Request) -> str:
+        if site_url:
+            return site_url
+        proto = request.headers.get("x-forwarded-proto") or request.url.scheme
+        host = request.headers.get("x-forwarded-host") or request.headers.get("host") or request.url.netloc
+        return f"{proto}://{host}"
+
+    @app.post("/api/projects/{pid}/share")
+    def share(pid: str, request: Request):
+        p = load(pid)
+        rep = p.state.get("render")
+        if not rep:
+            raise HTTPException(400, "render first")
+        sh = p.state.get("share")
+        if not sh or sh.get("rendered") != rep.get("rendered"):  # new token per render, old links keep working
+            token = secrets.token_urlsafe(8).replace("-", "a").replace("_", "b")
+            d = shares / token
+            d.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(p.path(rep["orbit_only"]), d / "loop.mp4")
+            shutil.copyfile(p.path(rep["out"]), d / "full.mp4")
+            from .util import run
+            run(["ffmpeg", "-y", "-ss", f"{rep['freeze_at'] + 1.0:.3f}", "-i", str(p.path(rep["out"])), "-frames:v", "1",
+                 "-vf", "scale=720:-2", "-q:v", "4", str(d / "poster.jpg")])
+            (d / "meta.json").write_text(json.dumps({"arc": rep["arc"], "t": rep["freeze_at"], "width": rep["width"],
+                                                     "height": rep["height"], "created": time.time(), "project": p.id}))
+            sh = {"id": token, "created": time.time(), "rendered": rep.get("rendered")}
+            p.state["share"] = sh
+            p.save()
+        return {"url": f"/s/{sh['id']}", "absolute": f"{base_url(request)}/s/{sh['id']}", "share": sh}
+
+    def share_dir(token: str) -> Path:
+        if not token.isalnum() or len(token) > 24 or not (shares / token / "meta.json").exists():
+            raise HTTPException(404, "no such share")
+        return shares / token
+
+    @app.get("/s/{token}", response_class=HTMLResponse)
+    def share_page(token: str, request: Request):
+        d = share_dir(token)
+        m = json.loads((d / "meta.json").read_text())
+        url = f"{base_url(request)}/s/{token}"
+        label = arcs.ARCS.get(m.get("arc"), {}).get("label", m.get("arc", ""))
+        page = (WEB / "share.html").read_text()
+        for k, v in {"URL": url, "SITE": base_url(request) + "/", "ARC": label, "T": f"{m.get('t', 0):.2f}",
+                     "W": m.get("width", 1080), "H": m.get("height", 1920)}.items():
+            page = page.replace("{{" + k + "}}", html.escape(str(v), quote=True))
+        return page
+
+    @app.get("/s/{token}/{name}")
+    def share_file(token: str, name: str):
+        d = share_dir(token)
+        if name not in ("loop.mp4", "full.mp4", "poster.jpg"):
+            raise HTTPException(404)
+        return FileResponse(d / name)
 
     @app.get("/api/workflow/{arc}")
     def workflow(arc: str):

@@ -80,6 +80,8 @@ def main(argv=None) -> None:
         o.add_argument("--color-match", type=float, default=0.0, metavar="0..1",
                        help="match the orbit's colours to the real frame (0 = off)")
         o.add_argument("--variants", type=int, default=1, metavar="N", help="N orbits with different seeds at once")
+        o.add_argument("--id-lora", type=float, default=0.0, metavar="0..1", help="LTX-2.3 identity LoRA strength (0 = off)")
+        o.add_argument("--engine", choices=list(workflows.ENGINES), default="ltx23", help="ltx23 (default) or ltx25")
         o.add_argument("--quality", action="store_true", help="40-step views instead of Lightning 4-step (~5x view cost)")
         o.add_argument("--no-fix-views", action="store_true", help="don't re-roll rejected views before the orbit")
         o.add_argument("--upscale", action="store_true", help="SeedVR2 upscale of the orbit before the splice")
@@ -151,7 +153,8 @@ def main(argv=None) -> None:
                 print(f"  rejected stills: {bad}")
         if not args.no_fix_views and any(not r["ok"] for r in p.state["stills"]["views"].values()):
             pipeline.retry_views(p, seed=args.seed, log=_log, on_status=_status)
-        kw = dict(subject=args.subject, sound=args.sound, log=_log, guide=args.guide, color_match=args.color_match)
+        kw = dict(subject=args.subject, sound=args.sound, log=_log, guide=args.guide, color_match=args.color_match,
+                  id_lora=args.id_lora, engine=args.engine)
         if args.variants > 1:
             outs = pipeline.variants(p, args.arc, args.variants, seed=args.seed,
                                      on_status=lambda i, rec: _status({**rec, "status": f"variant {i + 1}: {rec.get('status')}"}), **kw)
