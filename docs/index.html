@@ -36,10 +36,10 @@ nav{position:sticky;top:0;z-index:10;background:rgba(11,13,16,.78);backdrop-filt
 nav .wrap{display:flex;align-items:center;gap:20px;height:56px}
 .brand{display:flex;align-items:center;gap:10px;font-weight:800;color:var(--fg);text-decoration:none;letter-spacing:-.01em}
 .brand svg{flex:none}
-nav .links{display:flex;gap:18px;margin-left:auto;font-size:14px}
+nav .links{display:flex;align-items:center;gap:18px;margin-left:auto;font-size:14px;line-height:1.2}
 nav .links a{color:var(--mut);text-decoration:none}
 nav .links a:hover{color:var(--fg)}
-nav .gh{color:var(--fg)!important;border:1px solid var(--line2);border-radius:99px;padding:5px 12px}
+nav .gh{display:inline-flex;align-items:center;color:var(--fg)!important;border:1px solid var(--line2);border-radius:99px;padding:6px 12px}
 @media (max-width:720px){nav .links a:not(.gh){display:none}}
 
 /* hero */
@@ -48,6 +48,9 @@ nav .gh{color:var(--fg)!important;border:1px solid var(--line2);border-radius:99
 .hero .wrap{position:relative;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:48px;align-items:center}
 .tag{display:inline-flex;flex-wrap:wrap;gap:8px}
 .chip{font:600 11.5px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mut);border:1px solid var(--line2);border-radius:99px;padding:7px 11px;text-decoration:none}
+.new{display:flex;width:fit-content;align-items:center;gap:10px;margin-bottom:16px;padding:5px 14px 5px 5px;border-radius:99px;border:1px solid rgba(36,223,165,.45);background:rgba(36,223,165,.08);color:var(--fg);font-size:14px;font-weight:500;text-decoration:none}
+.new b{font:700 11px/1 var(--mono);letter-spacing:.08em;background:var(--acc);color:#04120d;border-radius:99px;padding:5px 9px}
+.new:hover{border-color:var(--acc)}
 .chip.on{color:var(--acc);border-color:rgba(36,223,165,.45)}
 h1{font-size:clamp(40px,6.4vw,76px);line-height:1;margin:22px 0 20px;font-weight:800;letter-spacing:-.035em}
 h1 em{font-style:normal;background:linear-gradient(92deg,var(--acc) 10%,var(--acc2) 90%);-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -199,6 +202,7 @@ footer a{color:var(--mut)}
 <header class="hero" id="top">
   <div class="wrap">
     <div>
+      <a class="new" href="#models"><b>NEW</b>We support LTX 2.5</a>
       <div class="tag">
         <a class="chip on" href="https://comfy.org/open-source-higgsfield">#OpenSourceHiggsfield</a>
         <span class="chip">ComfyUI</span>
@@ -208,7 +212,7 @@ footer a{color:var(--mut)}
       <h1>Bullet Time from <em>one phone shot</em></h1>
       <p class="lede">Freeze any moment of your take and fly the camera around it, the way a ring of 100 cameras would. Then the camera lands back on <b>your real frame</b> and the take carries on, with its <b>real sound</b>.</p>
       <div class="cta">
-        <a class="btn p" href="#run">Run it yourself</a>
+        <a class="btn p" href="https://bulletcam.apsolut.dev/">Try online ↗</a>
         <a class="btn" href="https://github.com/apsolut/bullet-time-comfyui">View on GitHub</a>
       </div>
       <div class="facts">
@@ -417,7 +421,7 @@ footer a{color:var(--mut)}
       <table>
         <tr><th>Step</th><th>Model</th><th>License</th></tr>
         <tr><td>8 views</td><td><a href="https://huggingface.co/Qwen/Qwen-Image-Edit-2511">Qwen-Image-Edit-2511</a> + <a href="https://huggingface.co/fal/Qwen-Image-Edit-2511-Multiple-Angles-LoRA">Multiple-Angles LoRA</a> + Lightning 4-step</td><td class="lic">Apache-2.0</td></tr>
-        <tr><td>Orbit + audio</td><td><a href="https://huggingface.co/Lightricks/LTX-2.3">LTX-2.3</a> 22B dev fp8, distilled LoRA 0.6, x2 spatial upscaler, Gemma 3 text encoder</td><td class="lic">LTX-2 Community License, Gemma Terms</td></tr>
+        <tr><td>Orbit + audio</td><td><a href="https://huggingface.co/Lightricks/LTX-2.3">LTX-2.3</a> 22B dev fp8, distilled LoRA 0.6, x2 spatial upscaler, Gemma 3 text encoder. <b>New:</b> LTX-2.5 as an optional engine (2.3 stays the default)</td><td class="lic">LTX-2 Community License, Gemma Terms</td></tr>
         <tr><td>Moment + splice</td><td>OpenCV + ffmpeg, no model</td><td class="lic">local, free</td></tr>
       </table>
     </div>
