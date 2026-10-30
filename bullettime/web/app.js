@@ -273,17 +273,17 @@ function opts() {
   return {quality: $("quality").checked, variants: +$("variants").value, color_match: +$("cm").value, guide: +$("guide").value,
           fix_views: $("fixViews").checked, upscale: $("upscaleOpt").checked, ...(CFG.engines ? {engine: $("engine").value} : {})};
 }
-// engine switch (LTX-2.3 default, LTX-2.5), only when the server offers it
+// engine switch (LTX-2.5 default, LTX-2.3 still selectable), only when the server offers it
 const ENGINE_COST = {ltx23: 0.055, ltx25: 0.067};
 function renderEngines() {
   const list = CFG.engines || [], labels = CFG.engine_labels || {}, sel = $("engine"), keep = sel.value;
   $("engineRow").classList.toggle("hidden", list.length < 2);
   sel.innerHTML = list.map((e) => `<option value="${esc(e)}">${esc(labels[e] || e)}</option>`).join("");
-  if (list.includes(keep)) sel.value = keep;
+  sel.value = list.includes(keep) ? keep : list.includes(CFG.engine_default) ? CFG.engine_default : list[0] || "";
   engineHint();
 }
 function engineHint() {
-  $("engineHint").textContent = $("engine").value === "ltx25" ? "newer model, slightly different look" : "video model for the orbit";
+  $("engineHint").textContent = $("engine").value === "ltx23" ? "previous model, identity LoRA available" : "video model for the orbit";
 }
 $("engine").addEventListener("input", () => { engineHint(); updateEstimate(); });
 function updateEstimate() {
