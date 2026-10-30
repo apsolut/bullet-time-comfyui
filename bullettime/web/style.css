@@ -255,6 +255,28 @@ canvas#curve{width:100%;height:64px;display:block;cursor:crosshair}
 .stills img{width:100%;aspect-ratio:9/16;object-fit:cover;border-radius:8px;border:1px solid var(--line);display:block;background:#000}
 .stills figcaption{font-size:11px;color:var(--dim);text-align:center;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .stills .bad img{border-color:var(--bad);opacity:.5}
+.stills figure{cursor:zoom-in}
+@media (hover:hover){.stills figure:hover img{border-color:var(--line3);transform:translateY(-2px)}}
+.stills img{transition:transform .15s var(--ease),border-color .15s}
+/* gallery of the views: full-screen lightbox, keys + swipe */
+dialog.lb{width:100vw;height:100dvh;max-width:none;max-height:none;margin:0;padding:0;border:0;border-radius:0;background:rgba(0,0,0,.94);
+  display:none;flex-direction:column;box-shadow:none}
+dialog.lb[open]{display:flex}
+dialog.lb::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(6px)}
+.lb-top{display:flex;align-items:center;gap:12px;padding:14px 16px;font-size:14px;color:var(--muted)}
+.lb-c{font-variant-numeric:tabular-nums;color:var(--text);font-weight:650}
+.lb-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-x{width:40px;height:40px;padding:0;border-radius:50%}
+.lb-stage{position:relative;flex:1;min-height:0;display:grid;place-items:center;padding:0 64px;touch-action:pan-y}
+.lb-stage img{max-width:100%;max-height:calc(100dvh - 190px);object-fit:contain;border-radius:14px;user-select:none;-webkit-user-drag:none}
+.lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;padding:0;border-radius:50%;background:rgba(255,255,255,.08)}
+.lb-nav.prev{left:12px}.lb-nav.next{right:12px}
+.lb-why{margin:8px 16px 0;text-align:center;font-size:13px;color:var(--bad);min-height:18px}
+.lb-strip{display:flex;gap:6px;justify-content:center;padding:12px 16px calc(16px + env(safe-area-inset-bottom));overflow-x:auto}
+.lb-strip button{flex:none;width:40px;height:56px;padding:0;border-radius:8px;overflow:hidden;border:2px solid transparent;opacity:.55}
+.lb-strip button.on{border-color:var(--acc);opacity:1}
+.lb-strip img{width:100%;height:100%;object-fit:cover;display:block}
+@media (max-width:640px){.lb-stage{padding:0 8px}.lb-nav{display:none}}
 .stills .bad figcaption{color:var(--bad)}
 .recent{display:flex;gap:8px;flex-wrap:wrap}
 .recent a{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13px;color:var(--muted);text-decoration:none}

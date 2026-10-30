@@ -429,6 +429,9 @@ function watch() {
     const secs = j.started ? Math.round(Date.now() / 1000 - j.started) : 0;
     $("runMsg").textContent = j.status === "running" ? `${j.step}${j.comfy ? " · " + j.comfy : ""} · ${secs} s` : "";
     stageRun(j, secs);
+    const haveViews = Object.keys((P.stills || {}).views || {}).length > 0 && j.status === "running" && j.step !== "stills";
+    $("runViews").classList.toggle("hidden", !haveViews);
+    if (haveViews) renderStills($("runStills"));
     if (j.status === "error") { $("runErr").textContent = j.error; $("runBadge").textContent = "stopped"; $("runBadge").className = "badge warn"; clearInterval(poll); loadConfig(); }
     if (j.status === "done") { clearInterval(poll); $("runBadge").textContent = "done"; $("runBadge").className = "badge ok"; $("runCard").classList.add("hidden"); showResult(); showPick(); loadRecent(); loadConfig(); }
   };
@@ -478,6 +481,59 @@ $("share").onclick = async () => {
   copyShare(url);
 };
 $("shareCopy").onclick = () => copyShare($("shareUrl").value);
+
+function renderStills(box) {
+  const views = Object.entries((P.stills || {}).views || {}), sig = P.id + views.map(([k, s]) => k + s.path + s.ok).join();
+  if (box.dataset.sig === sig) return;
+  box.dataset.sig = sig; box.innerHTML = "";
+  for (const [k, s] of views) {
+    const f = document.createElement("figure");
+    if (!s.ok) f.className = "bad";
+    f.innerHTML = `<img src="${file(s.path)}" alt="${VIEW_NAMES[k] || k}" loading="lazy"><figcaption title="${esc(s.ok ? "" : s.reason)}">${VIEW_NAMES[k] || k}${s.ok ? "" : " · " + esc(s.reason)}</figcaption>`;
+    box.appendChild(f);
+  }
+}
+
+// gallery: click a view thumbnail for a full-size lightbox. It reads #stills each time,
+// so it works with whatever views have arrived; arrows, keys and swipe step through them.
+let lbI = 0, lbBox = null;
+const lbItems = () => [...(lbBox || $("stills")).querySelectorAll("figure")].map((f) => {
+  const img = f.querySelector("img");
+  return {src: img.src, name: img.alt, bad: f.classList.contains("bad") ? (f.querySelector("figcaption").title || "rejected") : ""};
+});
+function lbShow(i) {
+  const items = lbItems();
+  if (!items.length) return;
+  lbI = (i + items.length) % items.length;
+  const it = items[lbI];
+  $("lbImg").src = it.src; $("lbImg").alt = it.name;
+  $("lbCount").textContent = `${lbI + 1} / ${items.length}`;
+  $("lbName").textContent = it.name;
+  $("lbWhy").textContent = it.bad ? `Rejected view: ${it.bad}` : "";
+  $("lbStrip").innerHTML = items.map((x, k) => `<button type="button" class="${k === lbI ? "on" : ""}" data-k="${k}" aria-label="${esc(x.name)}"><img src="${esc(x.src)}" alt=""></button>`).join("");
+  $("lbStrip").querySelector(".on").scrollIntoView({block: "nearest", inline: "center"});
+  if (!$("lightbox").open) $("lightbox").showModal();
+}
+for (const id of ["stills", "runStills"]) $(id).addEventListener("click", (e) => {
+  const f = e.target.closest("figure");
+  if (f) { lbBox = $(id); lbShow([...lbBox.querySelectorAll("figure")].indexOf(f)); }
+});
+$("lbPrev").onclick = () => lbShow(lbI - 1);
+$("lbNext").onclick = () => lbShow(lbI + 1);
+$("lbClose").onclick = () => $("lightbox").close();
+$("lbStrip").onclick = (e) => { const b = e.target.closest("button"); if (b) lbShow(+b.dataset.k); };
+$("lightbox").addEventListener("keydown", (e) => {
+  if (e.key === "ArrowLeft") lbShow(lbI - 1);
+  if (e.key === "ArrowRight") lbShow(lbI + 1);
+});
+$("lightbox").addEventListener("click", (e) => { if (e.target === $("lbStage")) $("lightbox").close(); });
+let lbX = null;
+$("lbStage").addEventListener("touchstart", (e) => { lbX = e.touches[0].clientX; }, {passive: true});
+$("lbStage").addEventListener("touchend", (e) => {
+  if (lbX == null) return;
+  const dx = e.changedTouches[0].clientX - lbX; lbX = null;
+  if (Math.abs(dx) > 40) lbShow(lbI + (dx < 0 ? 1 : -1));
+});
 
 // history: recent results in this browser for an hour (top right of the header)
 const HIST_KEY = "bt_hist", HIST_MS = 60 * 60 * 1000;
@@ -546,14 +602,7 @@ function showResult() {
     d.onclick = () => selectVariant(x.seed, x.arc);
     vl.appendChild(d);
   }
-  const box = $("stills");
-  box.innerHTML = "";
-  for (const [k, s] of Object.entries((P.stills || {}).views || {})) {
-    const f = document.createElement("figure");
-    if (!s.ok) f.className = "bad";
-    f.innerHTML = `<img src="${file(s.path)}" alt="${VIEW_NAMES[k] || k}" loading="lazy"><figcaption title="${esc(s.ok ? "" : s.reason)}">${VIEW_NAMES[k] || k}${s.ok ? "" : " · " + esc(s.reason)}</figcaption>`;
-    box.appendChild(f);
-  }
+  renderStills($("stills"));
   (matchMedia("(max-width:980px)").matches ? v : $("resultCard")).scrollIntoView({behavior: "smooth", block: "start"});
 }
 function stageView(which) {

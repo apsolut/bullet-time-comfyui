@@ -139,6 +139,7 @@
         <li data-s="upscale"><b><span class="dot"></span>Upscale</b><small>optional · SeedVR2</small></li>
         <li data-s="render"><b><span class="dot"></span>Splice</b><small>back into your take</small></li>
       </ol>
+      <div id="runViews" class="hidden"><div class="sub-h">Views so far <small class="muted">tap to open</small></div><div class="stills" id="runStills"></div></div>
       <p class="runmsg" id="runMsg"></p>
       <p class="err" id="runErr"></p>
     </section>
@@ -235,6 +236,16 @@
   </section>
 </aside>
 
+<dialog id="lightbox" class="lb" aria-label="Views of the frozen moment">
+  <div class="lb-top"><span class="lb-c" id="lbCount"></span><span class="lb-name" id="lbName"></span><button type="button" class="lb-x" id="lbClose" aria-label="Close"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div class="lb-stage" id="lbStage">
+    <button type="button" class="lb-nav prev" id="lbPrev" aria-label="Previous view"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <img id="lbImg" alt="">
+    <button type="button" class="lb-nav next" id="lbNext" aria-label="Next view"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+  </div>
+  <p class="lb-why" id="lbWhy"></p>
+  <div class="lb-strip" id="lbStrip"></div>
+</dialog>
 <dialog id="confirm">
   <form method="dialog">
     <h3 id="cTitle">Confirm</h3>
