@@ -113,6 +113,17 @@ button.primary:disabled{opacity:1;background:var(--panel2);color:var(--muted);bo
 .ws-b{margin-top:14px}
 .wstep[data-state=locked] .ws-t h3{color:var(--muted)}
 .wstep[data-state=locked] .ws-b{display:none}
+/* accordion: finished steps fold to a one-line summary; the current step stays open */
+.ws-sum{display:none;margin:2px 0 0;font-size:13.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ws-sum b{color:var(--text);font-weight:600}
+.ws-act{display:none;margin-top:1px;padding:6px 12px;border-radius:999px;font-size:12.5px;font-weight:600;color:var(--text);background:rgba(255,255,255,.04)}
+.wstep.can-fold .ws-act{display:inline-flex}
+.wstep.can-fold .ws-h{cursor:pointer}
+.wstep[data-folded] .ws-sub,.wstep[data-folded] .ws-b{display:none}
+.wstep[data-folded] .ws-sum{display:block}
+.wstep[data-folded] .ws-st,.wstep[data-folded] .req{display:none}
+.wstep[data-folded]{padding-bottom:20px}
+.wstep[data-folded] .ws-t h3{margin-top:5px}
 .req{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:99px;
   color:var(--acc);border:1px solid var(--acc-line);line-height:1.4}
 .opt{font-size:11.5px;font-weight:600;color:var(--dim);margin-left:4px}

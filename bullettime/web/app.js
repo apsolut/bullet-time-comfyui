@@ -189,6 +189,7 @@ async function upload(f) {
   fd.append("file", f);
   try {
     P = await api("POST", "/api/projects", fd, true);
+    takeName = f.name; OPEN.clear();
     history.replaceState(null, "", `#${P.id}`);
     dropText(`<b>${esc(f.name)}</b> · ${P.info.duration.toFixed(1)} s<br><small>Drop another clip to start over</small>`);
     showPick();
@@ -196,16 +197,44 @@ async function upload(f) {
   } catch (e) { $("upErr").textContent = e.message; dropText('<b>Drop your video here</b> or <u>browse</u><br><small>MP4, MOV or WebM · up to 30 s</small>'); }
 }
 
-// wizard state: 1 upload, 2 moment + camera, 3 generate
+// wizard state: 1 upload, 2 moment + camera, 3 generate.
+// Finished steps fold into a summary row (accordion); OPEN holds the ones the user reopened by hand.
+const OPEN = new Set();
+let takeName = "";
+function fold(id, can, folded, summary, act) {
+  const li = $(id);
+  li.classList.toggle("can-fold", can);
+  li.toggleAttribute("data-folded", can && folded);
+  $(id + "Sum").innerHTML = summary;
+  $(id + "Act").textContent = act;
+  $(id + "Act").hidden = !act;
+}
+function foldSteps() {
+  const busy = !!(P && P.job && P.job.status === "running");
+  const s1 = !!P && $("consent").checked;
+  fold("step1", s1, !OPEN.has("step1"), P ? `<b>${esc(takeName || "Your take")}</b> · ${P.info.duration.toFixed(1)} s · consent given` : "", "Start over");
+  const s2 = !!P && (busy || !!P.render);
+  fold("step2", s2, busy || !OPEN.has("step2"), P ? `<b>${esc((ARCS[arc] || {}).label || arc)}</b> · frozen at ${P.t.toFixed(2)} s${busy ? " · locked while rendering" : ""}` : "", busy ? "" : OPEN.has("step2") ? "Done" : "Edit");
+}
+for (const id of ["step1", "step2"]) {
+  $(id).querySelector(".ws-h").onclick = (e) => {
+    if (!$(id).classList.contains("can-fold") || e.target.closest("button,a,input,label")) return;
+    OPEN.has(id) ? OPEN.delete(id) : OPEN.add(id); foldSteps();
+  };
+}
+$("step1Act").onclick = () => $("file").click();
+$("step2Act").onclick = () => { OPEN.has("step2") ? OPEN.delete("step2") : OPEN.add("step2"); foldSteps(); };
+
 function setSteps() {
   const st = (id, state, txt) => { $(id).dataset.state = state; $(id + "St").textContent = txt; };
-  if (!P) { st("step1", "active", ""); st("step2", "locked", "Finish step 1"); st("step3", "locked", "Finish steps 1–2"); return; }
+  if (!P) { st("step1", "active", ""); st("step2", "locked", "Finish step 1"); st("step3", "locked", "Finish steps 1–2"); foldSteps(); return; }
   st("step1", "done", "Uploaded");
   st("step2", "done", `${(ARCS[arc] || {}).label || arc} at ${P.t.toFixed(2)} s`);
   st("step3", P.render ? "done" : "active", P.render ? "Done" : "");
   const busy = P.job && P.job.status === "running";
   $("generate").disabled = !!busy;
   $("generate").textContent = busy ? "Working on it…" : P.render ? "Generate again" : "Generate bullet time";
+  foldSteps();
   $("startWhy").textContent = !$("consent").checked ? "Tick the consent box in step 1 first." : !canPay() ? "Choose how to pay: a free run, your Comfy key or a promo code." : "";
 }
 $("consent").onchange = setSteps;
@@ -369,6 +398,7 @@ $("rerender").onclick = async () => {
 };
 
 function watch() {
+  OPEN.delete("step2");
   $("runCard").classList.remove("hidden");
   $("runErr").textContent = "";
   $("runBadge").textContent = "running"; $("runBadge").className = "badge";
