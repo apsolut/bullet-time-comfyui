@@ -89,18 +89,18 @@ $("judge").value = judge();
 $("key").addEventListener("change", (e) => { setKey(e.target.value.trim()); if (key()) ls("bt_pay", "key"); renderAccess(); });
 $("keyCheck").onclick = async () => {
   setKey($("key").value.trim()); ls("bt_pay", "key");
-  $("keyMsg").textContent = "Checking…";
+  keyNote("Checking…", "busy");
   try {
     const r = await fetch("/api/key/check", {method: "POST", headers: {"X-Comfy-Key": key(), "X-Pay-Mode": "key", ...(pw() ? {"X-App-Password": pw()} : {})}});
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.detail || `HTTP ${r.status}`);
-    $("keyMsg").textContent = "Key works." + (j.balance_usd != null ? ` Balance: $${j.balance_usd.toFixed(2)}` : "");
-  } catch (e) { $("keyMsg").textContent = e.message; }
+    keyNote("Key works." + (j.balance_usd != null ? ` Balance: $${j.balance_usd.toFixed(2)}` : ""), "ok");
+  } catch (e) { keyNote(e.message, "err"); }
   renderAccess();
 };
 $("judgeCheck").onclick = async () => {
   const v = $("judge").value.trim();
-  $("keyMsg").textContent = "Checking the code…";
+  keyNote("Checking the code…", "busy");
   try {
     const r = await fetch("/api/key/check", {method: "POST", headers: {"X-Judge-Code": v, ...(pw() ? {"X-App-Password": pw()} : {})}});
     const j = await r.json().catch(() => ({}));
@@ -108,20 +108,27 @@ $("judgeCheck").onclick = async () => {
     judgeLeft = j.judge_jobs_left;
     if (!(judgeLeft > 0)) { ls("bt_judge", ""); throw new Error(j.judge_jobs_total > 0 ? "This code is used up" : "This code has expired"); }
     ls("bt_judge", v); ls("bt_pay", "judge");
-    $("keyMsg").textContent = `Promo code accepted: ${judgeLeft} of ${j.judge_jobs_total} jobs left on it. No Comfy key needed.`;
-  } catch (e) { $("keyMsg").textContent = e.message; }
+    keyNote(`<b>Promo code accepted.</b> ${judgeLeft} of ${j.judge_jobs_total} jobs left on it. No Comfy key needed.`, "ok", true);
+  } catch (e) { keyNote(e.message, "err"); }
   renderAccess();
 };
 const KEY_MSG = $("keyMsg").innerHTML;
+// pay sheet status line: tone is "" (info), busy, ok, warn or err
+function keyNote(msg, tone = "", html = false) {
+  const el = $("keyMsg");
+  el.dataset.tone = tone;
+  if (!html && tone === "err" && msg) msg = msg[0].toUpperCase() + msg.slice(1);
+  if (html) el.innerHTML = msg; else el.textContent = msg;
+}
 for (const b of document.querySelectorAll("#access button")) b.onclick = () => {
   ls("bt_pay", b.dataset.a);
-  if (b.dataset.a === "key") $("keyMsg").innerHTML = KEY_MSG;
-  if (b.dataset.a === "judge") $("keyMsg").textContent = judge() ? "Promo code saved in this browser. It runs a few generations on our credits, no Comfy key needed." : "Have a promo code? It runs a few generations on our credits, no Comfy key needed.";
+  if (b.dataset.a === "key") keyNote(KEY_MSG, "", true);
+  if (b.dataset.a === "judge") keyNote(judge() ? "Promo code saved in this browser. It runs a few generations on our credits, no Comfy key needed." : "Have a promo code? It runs a few generations on our credits, no Comfy key needed.");
   renderAccess();
 };
 // The payment panel is a sheet (right drawer, bottom sheet on phones) opened from the header pill.
 function openSheet(reason) {
-  if (reason) $("keyMsg").textContent = reason;
+  if (reason) keyNote(reason, "warn");
   $("sheetBack").classList.remove("hidden"); $("paySheet").classList.remove("hidden");
   document.body.classList.add("sheet-open");
   requestAnimationFrame(() => { $("sheetBack").classList.add("in"); $("paySheet").classList.add("in"); });
@@ -159,8 +166,8 @@ function renderAccess() {
   $("access").style.setProperty("--n", [...document.querySelectorAll("#access button")].filter((b) => !b.classList.contains("hidden")).length);
   $("accKey").classList.toggle("hidden", m === "judge" || m === "free");
   $("accJudge").classList.toggle("hidden", m !== "judge");
-  if (m === "free") $("keyMsg").textContent = t ? (t.used_by_you ? "Using your free run on our credits (one per visitor)." : `A free run on our credits: ${t.runs_left} of ${t.runs_total} left, one per visitor, up to ${t.jobs_per_run} Comfy jobs. Or bring your own key.`) : `Demo credits: ${CFG.hosted_jobs_left ?? "∞"} jobs left.`;
-  if (m === "server") $("keyMsg").textContent = "This server pays with its own Comfy Cloud key.";
+  if (m === "free") keyNote(t ? (t.used_by_you ? "Using your free run on our credits (one per visitor)." : `A free run on our credits: ${t.runs_left} of ${t.runs_total} left, one per visitor, up to ${t.jobs_per_run} Comfy jobs. Or bring your own key.`) : `Demo credits: ${CFG.hosted_jobs_left ?? "∞"} jobs left.`);
+  if (m === "server") keyNote("This server pays with its own Comfy Cloud key.");
   updateEstimate();
   setSteps();
 }
