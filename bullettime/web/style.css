@@ -201,6 +201,9 @@ canvas#curve{width:100%;height:64px;display:block;cursor:crosshair}
 /* result */
 .res-actions{display:flex;gap:10px;flex-wrap:wrap}
 .res-actions .primary{flex:1 1 200px}
+.share-row{display:flex;gap:8px;margin-top:10px;padding:6px 6px 6px 14px;border-radius:999px;background:var(--panel2);border:1px solid var(--acc-line)}
+.share-row input{flex:1;min-width:0;border:0;background:none;padding:6px 0;font-size:13.5px;color:var(--text);box-shadow:none!important}
+.share-row button{padding:8px 14px}
 .tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px}
 .tools button{justify-content:flex-start;white-space:normal;text-align:left;border-radius:12px;background:var(--panel2);border-color:var(--line)}
 .tools button small{display:block;color:var(--dim);font-weight:500;font-size:12px}

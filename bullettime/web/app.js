@@ -410,6 +410,31 @@ function stageRun(j, secs) {
   }
 }
 
+// share page: POST once (idempotent), then the link lives in P.share
+const shareLink = () => P && P.share && P.render && P.share.rendered === P.render.rendered ? `${location.origin}/s/${P.share.id}` : "";
+function showShare(url) {
+  $("shareUrl").value = url; $("shareRow").classList.toggle("hidden", !url);
+}
+async function copyShare(url) {
+  try { await navigator.clipboard.writeText(url); toast("Link copied"); }
+  catch { $("shareUrl").select(); toast("Select the link and copy it"); }
+}
+$("share").onclick = async () => {
+  let url = shareLink();
+  if (!url) {
+    $("share").disabled = true;
+    try { const j = await api("POST", `/api/projects/${P.id}/share`); url = location.origin + j.url; P.share = j.share || P.share; }
+    catch (e) { toast(e.message); return; }
+    finally { $("share").disabled = false; }
+  }
+  showShare(url);
+  if (navigator.share && matchMedia("(pointer:coarse)").matches) {
+    try { await navigator.share({title: "My bullet time", text: "Frozen time, made from one phone shot.", url}); return; } catch (e) { if (e.name === "AbortError") return; }
+  }
+  copyShare(url);
+};
+$("shareCopy").onclick = () => copyShare($("shareUrl").value);
+
 function showResult() {
   if (!P.render) return;
   $("resultCard").classList.remove("hidden");
@@ -420,6 +445,7 @@ function showResult() {
   $("dlLoop").href = file(P.render.orbit_only);
   $("dlWf").href = `/api/projects/${P.id}/workflows.zip`;
   $("dlExport").href = `/api/projects/${P.id}/export.zip`;
+  showShare(shareLink());
   const o = P.orbit;
   $("orbitInfo").textContent = `${ARCS[o.arc].label} · keyframes: ${o.keys.join(", ")}` + (o.dropped.length ? ` · skipped bad views: ${o.dropped.join(", ")}` : "") + ` · seed ${o.seed}` + (o.path_up ? " · upscaled" : "") + (P.spent_usd ? ` · spent $${P.spent_usd.toFixed(2)}` : "");
   $("upscaleBtnT").innerHTML = o.path_up ? "Upscaled ✓ · run again<small>SeedVR2 on the current orbit</small>" : "Upscale orbit<small>SeedVR2, sharper frozen time</small>";

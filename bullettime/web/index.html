@@ -135,9 +135,14 @@
       <div class="card-h"><h2>Your bullet time</h2><span class="badge ok" id="resBadge">ready</span></div>
       <div class="res-actions">
         <a class="btn primary" id="dl" download><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Download video</a>
+        <button type="button" class="secondary" id="share"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>Share</button>
         <a class="btn secondary" id="dlLoop" download>Freeze loop</a>
         <a class="btn secondary" id="dlExport">Studio export</a>
         <a class="btn ghost" id="dlWf">ComfyUI workflows</a>
+      </div>
+      <div class="share-row hidden" id="shareRow">
+        <input type="text" id="shareUrl" readonly aria-label="Share link">
+        <button type="button" class="secondary" id="shareCopy">Copy link</button>
       </div>
       <div class="tools">
         <button type="button" id="reroll"><span>Re-roll the orbit<small>same views, new camera pass</small></span></button>
