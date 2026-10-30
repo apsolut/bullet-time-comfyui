@@ -495,8 +495,8 @@ function renderStills(box) {
 }
 
 // stage overlay: which part of the video is playing (real take / AI orbit through frozen time),
-// from the render's segment plan; the example uses its known cut (orbit from 2.2 s to the end)
-const EX_SEGS = [{k: "take", a: 0, b: 2.2}, {k: "orbit", a: 2.2, b: 7.62}];
+// from the render's segment plan; the example (LTX-2.5 run7 cut) has the orbit from 2.43 s to 8.83 s
+const EX_SEGS = [{k: "take", a: 0, b: 2.43}, {k: "orbit", a: 2.43, b: 8.83}, {k: "take", a: 8.83, b: 11}];
 function stageSegs(v) {
   if (v.id !== "result" || !(P && P.render && P.render.segments)) return EX_SEGS;
   const out = []; let t = 0;
@@ -654,7 +654,7 @@ function stageView(which) {
   $("result").classList.toggle("hidden", !mine); $("stageEx").classList.toggle("hidden", !!mine);
   $("stageShare").classList.toggle("hidden", !mine);
   segK = ""; drawSegs();
-  $("stageTag").textContent = mine ? "Your bullet time" : "Example output";
+  $("stageTag").textContent = mine ? "Your bullet time" : "Example · LTX-2.5";
   $("stageCap").textContent = mine ? "The bar on the video marks your real take (white) and the AI orbit through the frozen moment (green). Downloads and re-rolls are in the result card." : "Your take plays, time stops, the camera flies around the frozen moment, and the take carries on. The bar on the video shows which part is real and which is the AI orbit.";
   if (mine) $("stageEx").pause(); else { $("result").pause(); $("stageEx").play().catch(() => {}); }
 }
