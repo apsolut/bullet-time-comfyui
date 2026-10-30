@@ -93,6 +93,8 @@ h2{font-size:clamp(28px,3.6vw,42px);line-height:1.1;margin:10px 0 14px;letter-sp
 @media (max-width:900px){.steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:520px){.steps{grid-template-columns:1fr}}
 
+.studio .step:before{display:none}
+.studio .step h3{margin-top:0}
 /* orbit scrubber */
 .scrub{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:40px;align-items:center}
 .frame{position:relative;aspect-ratio:9/16;border-radius:20px;border:1px solid var(--line2);background:#000 url(media/orbit.jpg) 0 0/3200% 100% no-repeat;cursor:ew-resize;touch-action:pan-y;user-select:none;-webkit-user-select:none}
@@ -187,6 +189,7 @@ footer a{color:var(--mut)}
       <a href="#how">How it works</a>
       <a href="#arcs">Arcs</a>
       <a href="#demo">Demo</a>
+      <a href="#studio">Studio</a>
       <a href="#run">Run it</a>
       <a class="gh" href="https://github.com/apsolut/bullet-time-comfyui">GitHub ↗</a>
     </div>
@@ -217,7 +220,7 @@ footer a{color:var(--mut)}
     </div>
     <div class="phone">
       <video src="media/demo.mp4" poster="media/poster.jpg" autoplay muted loop playsinline controls preload="metadata"></video>
-      <div class="lbl">real Comfy Cloud output · orbit-360</div>
+      <div class="lbl">real Comfy Cloud output · orbit-360, all 8 views</div>
     </div>
   </div>
 </header>
@@ -261,7 +264,7 @@ footer a{color:var(--mut)}
       <div class="dial-l"><span>0° real frame</span><span>180° behind</span><span>360°</span></div>
     </div>
   </div>
-  <div class="wrap"><img class="strip" src="media/views.jpg" alt="The real frozen frame followed by the 8 Qwen views used as keyframes; the third came back rotated" loading="lazy"><p style="color:var(--mut);font-size:14px;margin:10px 0 0">The keyframes behind it: the real frame, then the 8 Qwen views. The third came back rotated, so the orientation check rejected it and LTX simply skipped that keyframe.</p></div>
+  <div class="wrap"><img class="strip" src="media/views.jpg" alt="The real frozen frame followed by the 8 Qwen views used as keyframes" loading="lazy"><p style="color:var(--mut);font-size:14px;margin:10px 0 0">The keyframes behind it: the real frame, then the 8 Qwen views. The third first came back rotated 90°. The orientation check rejected it and re-rolled just that one view (about $0.025), so the orbit gets all 8. Every orbit frame is also colour-matched to the real frame, so the grade doesn't drift from your take.</p></div>
 </section>
 
 <section id="arcs">
@@ -382,6 +385,25 @@ footer a{color:var(--mut)}
           <li>Keep the person in frame with some room around them.</li>
         </ul>
       </div>
+    </div>
+  </div>
+</section>
+
+<section id="studio">
+  <div class="wrap">
+    <div class="kicker">v0.2 Studio</div>
+    <h2>Built to run as a service, not a toy</h2>
+    <p class="sub">Everything a team needs, still all open weights on Comfy Cloud. See <a href="https://github.com/apsolut/bullet-time-comfyui#studio-use">Studio use</a> in the README.</p>
+    <div class="steps studio">
+      <div class="step"><h3>Fix one view</h3><p>A rejected view (sideways, wrong orientation, closed eyes) is re-rolled on its own in a pruned single-view graph, automatically before every orbit.</p><span class="cost">~$0.025 per view</span></div>
+      <div class="step"><h3>Variants</h3><p>Three orbits with different seeds submitted at once. Pick the best one in the web app.</p><span class="cost">3 x $0.055</span></div>
+      <div class="step"><h3>Colour match + upscale</h3><p>KJNodes ColorMatch locks the orbit's grade to your real frame. SeedVR2 3B takes it to a 1080 short side, with its audio.</p><span class="cost">free · ~$0.12</span></div>
+      <div class="step"><h3>Studio export</h3><p>ProRes 422 HQ master, H.264 delivery, the freeze loop, every view, <code>timeline.json</code> for your NLE, the cost ledger and the exact graphs that ran.</p><span class="cost">free</span></div>
+    </div>
+    <div class="cols">
+      <div><h3>One container for the team</h3><p>Docker or Fly.io (Frankfurt config included). No GPU on the host: generation never touches it.</p></div>
+      <div><h3>Shared key and password</h3><p>A server-side Comfy Cloud key so nobody pastes one, and an app password on every API call.</p></div>
+      <div><h3>Guard rails and a ledger</h3><p>Jobs in flight are capped, transient Comfy Cloud errors retry with backoff, and every paid job is booked against your balance.</p></div>
     </div>
   </div>
 </section>
