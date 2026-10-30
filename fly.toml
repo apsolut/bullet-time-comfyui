@@ -21,6 +21,7 @@ primary_region = "fra"
   BULLETTIME_HOSTED_FLOOR_USD = "20"   # hard stop for free runs and promo codes: refuse below this balance
   BULLETTIME_PROXY_HOPS = "1"          # Fly's edge proxy appends the client IP to X-Forwarded-For
   BULLETTIME_TTL_MINUTES = "1440"      # visitors' projects are deleted after a day
+  BULLETTIME_SITE_URL = "https://bulletcam.apsolut.dev"  # canonical host for share links and OG tags
   PORT = "8790"
 
 [http_service]
