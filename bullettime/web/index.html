@@ -2,192 +2,218 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bullet Time</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='none' stroke='%2300e0a4' stroke-width='3' stroke-dasharray='6 4'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%2300e0a4'/%3E%3C/svg%3E">
-<style>
-:root{--bg:#0b0d10;--card:#14181d;--line:#232a32;--fg:#e8edf2;--dim:#8a96a3;--acc:#00e0a4;--acc2:#7cf0ff;--bad:#ff6b6b;--r:14px}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-main{max-width:980px;margin:0 auto;padding:24px 16px 80px}
-h1{font-size:30px;letter-spacing:-.02em;margin:8px 0 2px}
-h1 span{color:var(--acc)}
-.sub{color:var(--dim);margin:0 0 22px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;margin:14px 0}
-.card h2{font-size:15px;margin:0 0 12px;color:var(--dim);font-weight:600;text-transform:uppercase;letter-spacing:.08em}
-.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-input[type=text],input[type=password]{flex:1;min-width:200px;background:#0e1115;border:1px solid var(--line);color:var(--fg);border-radius:10px;padding:10px 12px;font:inherit}
-button{background:#1d242c;border:1px solid var(--line);color:var(--fg);border-radius:10px;padding:10px 14px;font:inherit;cursor:pointer}
-button:hover{border-color:#3a4652}
-button.go{background:var(--acc);color:#04120d;border:0;font-weight:700}
-button:disabled{opacity:.45;cursor:default}
-.drop{border:2px dashed #2c3640;border-radius:var(--r);padding:34px;text-align:center;color:var(--dim);cursor:pointer}
-.drop.over{border-color:var(--acc);color:var(--fg)}
-.stage{display:grid;grid-template-columns:minmax(0,320px) 1fr;gap:18px}
-@media (max-width:760px){.stage{grid-template-columns:1fr}}
-video{width:100%;border-radius:12px;background:#000;max-height:70vh}
-canvas{width:100%;height:70px;display:block;border-radius:8px;background:#0e1115;cursor:crosshair}
-.arcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
-.arc{border:1px solid var(--line);border-radius:12px;padding:10px;cursor:pointer;background:#0f1317}
-.arc b{display:block;font-size:14px}
-.arc small{color:var(--dim)}
-.arc.on{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc) inset}
-.arc.off{opacity:.35;pointer-events:none}
-.pill{display:inline-block;border:1px solid var(--line);border-radius:99px;padding:2px 10px;font-size:13px;color:var(--dim)}
-.steps{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
-.step{padding:6px 12px;border-radius:99px;border:1px solid var(--line);color:var(--dim);font-size:13px}
-.step.run{border-color:var(--acc2);color:var(--acc2)}
-.step.done{border-color:var(--acc);color:var(--acc)}
-.stills{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}
-@media (max-width:760px){.stills{grid-template-columns:repeat(4,1fr)}}
-.stills figure{margin:0;position:relative}
-.stills img{width:100%;aspect-ratio:9/16;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
-.stills figcaption{font-size:11px;color:var(--dim);text-align:center}
-.stills .bad img{border-color:var(--bad);opacity:.5}
-.err{color:var(--bad);white-space:pre-wrap}
-.hidden{display:none!important}
-a{color:var(--acc2)}
-.muted{color:var(--dim);font-size:13px}
-label.inline{display:flex;gap:8px;align-items:center;color:var(--dim)}
-select{background:#0e1115;border:1px solid var(--line);color:var(--fg);border-radius:8px;padding:6px 8px;font:inherit}
-details.pro summary{cursor:pointer;color:var(--dim);font-size:13px;text-transform:uppercase;letter-spacing:.08em}
-.recent{display:flex;gap:8px;flex-wrap:wrap}
-.recent a{display:inline-block;border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:13px;color:var(--fg);text-decoration:none}
-.recent a.on{border-color:var(--acc)}
-.variants{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
-.variant{border:1px solid var(--line);border-radius:10px;padding:6px;cursor:pointer;text-align:center;font-size:12px;color:var(--dim)}
-.variant video{aspect-ratio:9/16;max-height:none;border-radius:6px}
-.variant.on{border-color:var(--acc)}
-.warn{color:#ffcf6b}
-.access{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
-.access button{border-radius:99px}
-.access button.on{border-color:var(--acc);color:var(--acc)}
-.access button small{color:var(--dim);margin-left:4px}
-.access button.hidden{display:none}
-</style>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Bullet Time · freeze any moment of your phone shot and fly around it</title>
+<meta name="description" content="Upload one phone shot. Bullet Time freezes your best moment, films it from 8 new angles and flies the camera through frozen time, then your take carries on. Open weights on ComfyUI: Qwen-Image-Edit 2511 and LTX-2.3.">
+<meta name="author" content="Aleksandar Perisic">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Bullet Time">
+<meta property="og:title" content="Bullet Time: freeze the moment, fly around it">
+<meta property="og:description" content="One phone shot in. A Matrix-style orbit through frozen time out. Open weights on ComfyUI.">
+<meta property="og:image" content="/web/example.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:creator" content="@apsolut">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a0a0a'/%3E%3Ccircle cx='16' cy='16' r='10' fill='none' stroke='%23f0fe68' stroke-width='2.5' stroke-dasharray='4.5 3.2'/%3E%3Ccircle cx='16' cy='16' r='4' fill='%23fafafa'/%3E%3C/svg%3E">
+<link rel="preload" href="/web/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/web/style.css">
 </head>
 <body>
-<main>
-  <h1>Bullet <span>Time</span></h1>
-  <p class="sub">One phone shot. Freeze any moment and fly the camera around it, then the take carries on. Open weights on ComfyUI: Qwen-Image-Edit 2511 + LTX-2.3.</p>
+<header class="top">
+  <a class="brand" href="/"><svg class="logo" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="#f0fe68" stroke-width="2.2" stroke-dasharray="4 2.8"/><circle cx="12" cy="12" r="3.6" fill="#fafafa"/></svg>Bullet Time</a>
+  <nav>
+    <a href="/" id="newProject" class="hidden">New take</a>
+    <button type="button" class="hdr-pill" id="payPill" aria-haspopup="dialog" aria-controls="paySheet"><span class="pp-dot" aria-hidden="true"></span><span id="payPillT">Free run</span></button>
+    <a class="wide-only" href="https://apsolut.github.io/bullet-time-comfyui/" target="_blank" rel="noopener">How it works</a>
+    <a class="wide-only" href="https://github.com/apsolut/bullet-time-comfyui" target="_blank" rel="noopener">GitHub</a>
+  </nav>
+</header>
 
-  <section class="card" id="keyCard">
-    <h2>1 · Who pays for the AI camera</h2>
-    <div class="access" id="access">
-      <button type="button" data-a="free" id="accFreeBtn">Free run <small id="accFreeN"></small></button>
-      <button type="button" data-a="key">My Comfy key</button>
-      <button type="button" data-a="judge" id="accJudgeBtn">Promo code</button>
+<main class="studio">
+  <div class="intro">
+    <section class="hero">
+      <h1>Freeze the moment.<br>Fly around it.</h1>
+      <p>Upload one phone shot. AI freezes your best moment, films it from 8 new angles and flies the camera through frozen time. Then your take carries on.</p>
+      <div class="chips"><span>Qwen-Image-Edit 2511</span><span>LTX-2.3</span><span>Open weights on ComfyUI</span><span>≈ $0.10 a shot</span></div>
+    </section>
+  </div>
+
+  <div class="flow">
+    <section class="card" id="wizard">
+      <ol class="wsteps">
+        <li class="wstep" id="step1" data-state="active">
+          <div class="ws-h"><i class="ws-n" aria-hidden="true">1</i>
+            <div class="ws-t"><h3>Upload your take <span class="req">Required</span></h3>
+              <p class="ws-sub">A short vertical clip, up to 30 s, with one clear peak: a jump, a hair flip, a throw, a laugh.</p></div>
+            <span class="ws-st" id="step1St"></span></div>
+          <div class="ws-b">
+            <div class="drop empty" id="drop" role="button" tabindex="0" aria-label="Upload a video">
+              <div class="drop-in">
+                <div class="drop-ic" aria-hidden="true"><svg viewBox="0 0 24 24" id="dropIc"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg></div>
+                <div id="dropT"><b>Drop your video here</b> or <u>browse</u><br><small>MP4, MOV or WebM · up to 30 s</small></div>
+              </div>
+            </div>
+            <input type="file" id="file" accept="video/*" class="hidden">
+            <p class="err" id="upErr" role="alert"></p>
+            <label class="consent" for="consent"><input type="checkbox" id="consent"><span>This is my own face, or I have permission from the person in the video.</span></label>
+          </div>
+        </li>
+
+        <li class="wstep" id="step2" data-state="locked">
+          <div class="ws-h"><i class="ws-n" aria-hidden="true">2</i>
+            <div class="ws-t"><h3>Pick the moment and the camera move</h3>
+              <p class="ws-sub">We picked the sharpest peak with open eyes. Scrub the take to choose another.</p></div>
+            <span class="ws-st" id="step2St">Finish step 1</span></div>
+          <div class="ws-b" id="pickCard">
+            <div class="pick">
+              <div class="take-wrap"><video id="take" controls playsinline muted></video></div>
+              <div>
+                <div class="curve-wrap">
+                  <canvas id="curve" width="900" height="128" title="Motion and sharpness over time. Click to jump there."></canvas>
+                  <div class="curve-l"><span>motion × sharpness</span><span>click to jump · <b>|</b> frozen frame</span></div>
+                </div>
+                <div class="row freeze-row">
+                  <button type="button" class="secondary" id="freezeHere"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M4.9 7l14.2 10M4.9 17L19.1 7"/></svg>Freeze this frame</button>
+                  <button type="button" class="ghost" id="freezeAuto">Auto pick</button>
+                  <span class="pill" id="freezeAt"><span class="pp-dot" aria-hidden="true"></span>freeze at –</span>
+                </div>
+                <div class="field-l">Camera move</div>
+                <div class="arcs" id="arcs" role="radiogroup" aria-label="Camera move"></div>
+              </div>
+            </div>
+            <div class="field-l">Who is frozen? <span class="opt">optional, helps when there are several people</span></div>
+            <div class="row"><input type="text" id="subject" placeholder="e.g. the woman in the red jacket" maxlength="120"></div>
+            <div class="row" style="margin-top:14px"><label class="switch"><input type="checkbox" id="whoosh" checked><span></span>Generated whoosh sound during the freeze</label></div>
+            <details class="adv">
+              <summary>Studio options <span class="opt">Optional</span></summary>
+              <div class="adv-b">
+                <label class="opt-row"><span><b>Quality views</b> · 40 steps, about 5x the view cost</span><span class="switch"><input type="checkbox" id="quality"><span></span></span></label>
+                <label class="opt-row"><span><b>Variants</b> · orbits in parallel, pick the best</span><select id="variants"><option>1</option><option>2</option><option>3</option><option>4</option></select></label>
+                <label class="opt-row"><span><b>Colour match</b> to the real frame</span><span class="row"><input type="range" id="cm" min="0" max="1" step="0.1" value="0"><span class="val" id="cmV">off</span></span></label>
+                <label class="opt-row"><span><b>View keyframe strength</b></span><span class="row"><input type="range" id="guide" min="0.3" max="1" step="0.1" value="0.6"><span class="val" id="guideV">0.6</span></span></label>
+                <label class="opt-row"><span><b>Re-roll rejected views</b> automatically</span><span class="switch"><input type="checkbox" id="fixViews" checked><span></span></span></label>
+                <label class="opt-row"><span><b>SeedVR2 upscale</b> of the orbit · about $0.12</span><span class="switch"><input type="checkbox" id="upscaleOpt"><span></span></span></label>
+              </div>
+            </details>
+          </div>
+        </li>
+
+        <li class="wstep" id="step3" data-state="locked">
+          <div class="ws-h"><i class="ws-n" aria-hidden="true">3</i>
+            <div class="ws-t"><h3>Generate</h3>
+              <p class="ws-sub">Picking the moment is free. You see the exact cost before anything is spent.</p></div>
+            <span class="ws-st" id="step3St">Finish steps 1–2</span></div>
+          <div class="ws-b">
+            <div class="paybox"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h3"/></svg><span class="grow" id="payBoxT">Free run</span><button type="button" class="linkish" id="payChange">Change</button></div>
+            <div class="go">
+              <button class="primary wide" id="generate">Generate bullet time</button>
+              <span class="est" id="estimate"></span>
+            </div>
+            <p class="why" id="startWhy" role="status"></p>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <section class="card hidden" id="runCard" aria-live="polite">
+      <div class="card-h"><h2>Making it</h2><span class="badge" id="runBadge">running</span></div>
+      <ol class="psteps" id="steps">
+        <li data-s="stills"><b><span class="dot"></span>8 views</b><small>of the moment · Qwen</small></li>
+        <li data-s="orbit"><b><span class="dot"></span>Orbit</b><small>through frozen time · LTX-2.3</small></li>
+        <li data-s="upscale"><b><span class="dot"></span>Upscale</b><small>optional · SeedVR2</small></li>
+        <li data-s="render"><b><span class="dot"></span>Splice</b><small>back into your take</small></li>
+      </ol>
+      <p class="runmsg" id="runMsg"></p>
+      <p class="err" id="runErr"></p>
+    </section>
+
+    <section class="card hidden" id="resultCard">
+      <div class="card-h"><h2>Your bullet time</h2><span class="badge ok" id="resBadge">ready</span></div>
+      <div class="res-actions">
+        <a class="btn primary" id="dl" download><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Download video</a>
+        <a class="btn secondary" id="dlLoop" download>Freeze loop</a>
+        <a class="btn secondary" id="dlExport">Studio export</a>
+        <a class="btn ghost" id="dlWf">ComfyUI workflows</a>
+      </div>
+      <div class="tools">
+        <button type="button" id="reroll"><span>Re-roll the orbit<small>same views, new camera pass</small></span></button>
+        <button type="button" id="newStills"><span>New views + orbit<small>fresh angles of the moment</small></span></button>
+        <button type="button" id="fixViewsBtn" class="hidden"><span>Fix rejected views<small>re-roll only the bad angles</small></span></button>
+        <button type="button" id="upscaleBtn"><span id="upscaleBtnT">Upscale orbit<small>SeedVR2, sharper frozen time</small></span></button>
+      </div>
+      <div id="variantsBox" class="hidden">
+        <div class="sub-h">Variants <small class="muted">hover to play, click to use</small></div>
+        <div class="variants" id="variantList"></div>
+      </div>
+      <div class="ramp">
+        <span>Slow-mo ramp</span><input type="range" id="ramp" min="0" max="1.2" step="0.1" value="0.4"><span class="val" id="rampV">0.4 s</span>
+        <button type="button" class="secondary" id="rerender">Re-render · free</button>
+      </div>
+      <p class="info" id="orbitInfo"></p>
+      <div class="sub-h">Views of the frozen moment</div>
+      <div class="stills" id="stills"></div>
+    </section>
+
+    <section class="card hidden" id="recentCard">
+      <div class="card-h"><h2>Recent projects</h2></div>
+      <div class="recent" id="recent"></div>
+    </section>
+  </div>
+
+  <aside class="stage" aria-label="Preview">
+    <div class="stage-card">
+      <div class="stage-h">
+        <span class="stage-tag" id="stageTag">Example output</span>
+        <div class="stage-tabs hidden" id="stageTabs"><button type="button" data-v="mine" class="on">Yours</button><button type="button" data-v="ex">Example</button></div>
+      </div>
+      <div class="stage-frame">
+        <video id="stageEx" src="/web/example.mp4" poster="/web/example.jpg" muted loop playsinline autoplay preload="metadata"></video>
+        <video id="result" class="hidden" controls playsinline loop></video>
+      </div>
+      <div class="stage-chips"><span><i>A</i>Real take</span><span><i>8</i>AI views</span><span><i>↻</i>Orbit through frozen time</span></div>
+      <p class="stage-cap" id="stageCap">Your take plays, time stops, the camera flies around the frozen moment, and the take carries on. Same audio, same phone shot.</p>
+    </div>
+  </aside>
+</main>
+
+<footer class="foot">
+  <span>MIT · <a href="https://github.com/apsolut/bullet-time-comfyui">github.com/apsolut/bullet-time-comfyui</a> · ComfyUI, Qwen-Image-Edit 2511, LTX-2.3 · open weights · #OpenSourceHiggsfield</span>
+  <span>Only use your own face, or someone's who agreed.</span>
+  <span class="muted small" id="health"></span>
+</footer>
+
+<div class="sheet-back hidden" id="sheetBack"></div>
+<aside class="sheet hidden" id="paySheet" role="dialog" aria-modal="true" aria-labelledby="payH">
+  <div class="sheet-h"><h2 id="payH">Pay for the AI camera</h2><button type="button" class="ghost sheet-x" id="sheetX" aria-label="Close"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <section id="keyCard" style="display:grid;gap:14px">
+    <div class="seg" id="access" role="radiogroup" aria-label="Payment">
+      <button type="button" data-a="free" id="accFreeBtn" role="radio">Free run <small id="accFreeN"></small></button>
+      <button type="button" data-a="key" role="radio">My Comfy key</button>
+      <button type="button" data-a="judge" id="accJudgeBtn" role="radio">Promo code</button>
     </div>
     <div class="row" id="accKey">
-      <input type="password" id="key" placeholder="Paste your Comfy Cloud API key" autocomplete="off">
-      <button id="keyCheck">Check</button>
+      <input type="password" id="key" placeholder="comfyui-…  (platform.comfy.org → API keys)" autocomplete="off" spellcheck="false" aria-label="Comfy Cloud API key">
+      <button type="button" class="secondary" id="keyCheck">Check</button>
     </div>
     <div class="row hidden" id="accJudge">
-      <input type="text" id="judge" placeholder="Enter promo code" autocomplete="off" autocapitalize="off" spellcheck="false">
-      <button id="judgeCheck">Use code</button>
+      <input type="text" id="judge" placeholder="Enter promo code" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Promo code">
+      <button type="button" class="secondary" id="judgeCheck">Use code</button>
     </div>
-    <p class="muted" id="keyMsg">Your key stays in this browser and is sent per request, never stored or logged. Get one at <a href="https://platform.comfy.org/profile/api-keys" target="_blank" rel="noopener">platform.comfy.org</a>. About $0.10 per bullet time; picking the moment and re-rendering are free.</p>
-    <div class="row hidden" id="pwRow"><input type="password" id="pw" placeholder="App password (this server asks for one)" autocomplete="off"><button id="pwSave">Save</button></div>
-    <p class="muted" id="health"></p>
+    <p class="key-msg" id="keyMsg" aria-live="polite">Your key stays in this browser and is sent per request, never stored or logged. Get one at <a href="https://platform.comfy.org/profile/api-keys" target="_blank" rel="noopener">platform.comfy.org</a>.</p>
+    <div class="row hidden" id="pwRow"><input type="password" id="pw" placeholder="App password (this server asks for one)" autocomplete="off"><button type="button" class="secondary" id="pwSave">Save</button></div>
+    <p class="note">About $0.10 per bullet time. Picking the moment and re-rendering are free. You confirm the exact cost before every paid step.</p>
   </section>
+</aside>
 
-  <section class="card" id="recentCard">
-    <h2>Recent projects</h2>
-    <div class="recent" id="recent"><span class="muted">none yet</span></div>
-  </section>
-
-  <section class="card" id="uploadCard">
-    <h2>2 · Your take</h2>
-    <div class="drop" id="drop">Drop a short video here (up to 30 s), or click to pick one.<br><span class="muted">Best: one person doing something with a clear peak: a jump, a hair flip, a throw, a splash.</span></div>
-    <input type="file" id="file" accept="video/*" class="hidden">
-    <p class="err" id="upErr"></p>
-  </section>
-
-  <section class="card hidden" id="pickCard">
-    <h2>3 · Freeze moment and camera</h2>
-    <div class="stage">
-      <div><video id="take" controls playsinline muted></video></div>
-      <div>
-        <canvas id="curve" width="900" height="140" title="motion × sharpness: click to jump"></canvas>
-        <div class="row" style="margin:10px 0 16px">
-          <button id="freezeHere">Freeze at current frame</button>
-          <button id="freezeAuto">Auto pick</button>
-          <span class="pill" id="freezeAt">freeze at –</span>
-        </div>
-        <div class="arcs" id="arcs"></div>
-        <div class="row" style="margin-top:14px">
-          <input type="text" id="subject" placeholder="Who is frozen? (optional) e.g. the woman in the red jacket" maxlength="120">
-        </div>
-        <div class="row" style="margin-top:10px">
-          <label class="inline"><input type="checkbox" id="whoosh" checked> Generated whoosh sound during the freeze</label>
-        </div>
-        <details class="pro" style="margin-top:10px">
-          <summary>Studio options</summary>
-          <div class="row" style="margin-top:8px">
-            <label class="inline"><input type="checkbox" id="quality"> Quality views (40 steps, ~5x the view cost)</label>
-          </div>
-          <div class="row" style="margin-top:6px">
-            <label class="inline">Variants <select id="variants"><option>1</option><option>2</option><option>3</option><option>4</option></select> orbits in parallel, pick the best</label>
-          </div>
-          <div class="row" style="margin-top:6px">
-            <label class="inline">Colour match to the real frame <input type="range" id="cm" min="0" max="1" step="0.1" value="0"> <span id="cmV">off</span></label>
-          </div>
-          <div class="row" style="margin-top:6px">
-            <label class="inline">View keyframe strength <input type="range" id="guide" min="0.3" max="1" step="0.1" value="0.6"> <span id="guideV">0.6</span></label>
-          </div>
-          <div class="row" style="margin-top:6px">
-            <label class="inline"><input type="checkbox" id="fixViews" checked> Re-roll rejected views automatically</label>
-            <label class="inline"><input type="checkbox" id="upscaleOpt"> SeedVR2 upscale of the orbit (~$0.12)</label>
-          </div>
-        </details>
-        <div class="row" style="margin-top:16px">
-          <button class="go" id="generate">Generate bullet time</button>
-          <span class="muted" id="estimate"></span>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="card hidden" id="runCard">
-    <h2>4 · Making it</h2>
-    <div class="steps"><span class="step" data-s="stills">8 views of the moment · Qwen</span><span class="step" data-s="orbit">camera through frozen time · LTX-2.3</span><span class="step" data-s="upscale">upscale · SeedVR2</span><span class="step" data-s="render">splice into your take</span></div>
-    <p class="muted" id="runMsg"></p>
-    <p class="err" id="runErr"></p>
-  </section>
-
-  <section class="card hidden" id="resultCard">
-    <h2>Result</h2>
-    <div class="stage">
-      <div><video id="result" controls playsinline loop></video></div>
-      <div>
-        <div class="row">
-          <a id="dl" download><button class="go">Download video</button></a>
-          <a id="dlLoop" download><button>Download freeze loop</button></a>
-          <a id="dlExport"><button>Studio export (ProRes + timeline)</button></a>
-          <a id="dlWf"><button>ComfyUI workflows</button></a>
-        </div>
-        <div class="row" style="margin-top:14px">
-          <button id="reroll">Re-roll the orbit</button>
-          <button id="newStills">New views + orbit</button>
-          <button id="fixViewsBtn" class="hidden">Fix rejected views</button>
-          <button id="upscaleBtn">Upscale orbit (SeedVR2)</button>
-        </div>
-        <div id="variantsBox" class="hidden" style="margin-top:14px">
-          <h2>Variants</h2>
-          <div class="variants" id="variantList"></div>
-        </div>
-        <div class="row" style="margin-top:14px">
-          <label class="inline">Slow-mo ramp <input type="range" id="ramp" min="0" max="1.2" step="0.1" value="0.4"> <span id="rampV">0.4 s</span></label>
-          <button id="rerender">Re-render (free)</button>
-        </div>
-        <p class="muted" id="orbitInfo"></p>
-      </div>
-    </div>
-    <h2 style="margin-top:18px">Views of the frozen moment</h2>
-    <div class="stills" id="stills"></div>
-  </section>
-  <p class="muted">Open source (MIT): <a href="https://github.com/apsolut/bullet-time-comfyui">github.com/apsolut/bullet-time-comfyui</a> · #OpenSourceHiggsfield · Only use your own face or someone who agreed.</p>
-</main>
+<dialog id="confirm">
+  <form method="dialog">
+    <h3 id="cTitle">Confirm</h3>
+    <div id="cBody"></div>
+    <div class="row"><button value="no" class="ghost">Cancel</button><button value="yes" class="primary" id="cYes">Go</button></div>
+  </form>
+</dialog>
+<div class="toast" id="toast" role="status"></div>
 <script src="/web/app.js"></script>
 </body>
 </html>
