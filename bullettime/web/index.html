@@ -10,7 +10,8 @@
 <meta property="og:site_name" content="Bullet Time">
 <meta property="og:title" content="Bullet Time: freeze the moment, fly around it">
 <meta property="og:description" content="One phone shot in. A Matrix-style orbit through frozen time out. Open weights on ComfyUI.">
-<meta property="og:image" content="/web/example.jpg">
+<meta property="og:image" content="https://bulletcam.apsolut.dev/web/example.jpg">
+<meta property="og:url" content="https://bulletcam.apsolut.dev/">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:creator" content="@apsolut">
 <meta name="theme-color" content="#0a0a0a">
@@ -20,6 +21,7 @@
 <link rel="stylesheet" href="/web/style.css">
 </head>
 <body>
+<div class="aura" aria-hidden="true"><img src="/web/example.jpg" alt="" decoding="async"></div>
 <header class="top">
   <a class="brand" href="/"><svg class="logo" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="#f0fe68" stroke-width="2.2" stroke-dasharray="4 2.8"/><circle cx="12" cy="12" r="3.6" fill="#fafafa"/></svg>Bullet Time</a>
   <nav>
@@ -33,7 +35,8 @@
 <main class="studio">
   <div class="intro">
     <section class="hero">
-      <h1>Freeze the moment.<br>Fly around it.</h1>
+      <p class="eyebrow"><span class="pp-dot" aria-hidden="true"></span>Open-source bullet time for ComfyUI</p>
+      <h1>Freeze the moment.<br><span>Fly around it.</span></h1>
       <p>Upload one phone shot. AI freezes your best moment, films it from 8 new angles and flies the camera through frozen time. Then your take carries on.</p>
       <div class="chips"><span>Qwen-Image-Edit 2511</span><span>LTX-2.3</span><span>Open weights on ComfyUI</span><span>≈ $0.10 a shot</span></div>
     </section>
@@ -170,6 +173,12 @@
       <div class="stage-frame">
         <video id="stageEx" src="/web/example.mp4" poster="/web/example.jpg" muted loop playsinline autoplay preload="metadata"></video>
         <video id="result" class="hidden" controls playsinline loop></video>
+        <div class="stage-run hidden" id="stageRun" aria-hidden="true">
+          <span class="sr-k"><span class="pp-dot"></span><span id="srK">Rendering</span></span>
+          <p class="sr-t" id="srT">Shooting 8 new angles</p>
+          <p class="sr-s" id="srS"></p>
+          <div class="sr-bar" id="srBar"><i data-s="stills"></i><i data-s="orbit"></i><i data-s="upscale"></i><i data-s="render"></i></div>
+        </div>
       </div>
       <div class="stage-chips"><span><i>A</i>Real take</span><span><i>8</i>AI views</span><span><i>↻</i>Orbit through frozen time</span></div>
       <p class="stage-cap" id="stageCap">Your take plays, time stops, the camera flies around the frozen moment, and the take carries on. Same audio, same phone shot.</p>

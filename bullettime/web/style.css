@@ -1,10 +1,12 @@
-/* Bullet Time web app. Same visual language as Multicam (github.com/apsolut/one-shot-multicam):
-   neutral dark ramp, Inter, one lime accent for selection and focus, a white pill for the one CTA. */
+/* Bullet Time web app. Multicam lineage (Inter, white pill CTA, lime "frozen" signal), pushed further with Refero references:
+   Krea: pure black canvas, monochrome surfaces, a dark cinematic scene behind the hero, neutral active states.
+   FLORA: flat cards (no heavy shadows), accent reserved for status and active edges only.
+   Runway / Synthesia tool screens: the output stage doubles as the live render canvas while a job runs. */
 @font-face{font-family:"Inter";src:url("/web/InterVariable.woff2") format("woff2");font-weight:100 900;font-style:normal;font-display:swap}
 :root{
   color-scheme:dark;
-  --bg:#0a0a0a;--bg2:#0f0f0f;--panel:#141414;--panel2:#1a1a1a;--raise:#222;--line:#262626;--line2:#333;--line3:#4a4a4a;
-  --text:#fafafa;--muted:#a3a3a3;--dim:#8a8a8a;
+  --bg:#000;--bg2:#0a0a0a;--panel:#111;--panel2:#171717;--raise:#262626;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.14);--line3:rgba(255,255,255,.26);
+  --text:#fafafa;--muted:#a3a3a3;--dim:#7d7d7d;
   --acc:#f0fe68;--acc-ink:#0a0a0a;--acc-soft:rgba(240,254,104,.10);--acc-line:rgba(240,254,104,.6);
   --cta:#fafafa;--cta-ink:#0a0a0a;
   --warn:#f5c26b;--bad:#ff8a8a;
@@ -22,7 +24,7 @@ svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke
 
 /* header */
 .top{position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;gap:12px;
-  padding:12px clamp(16px,4vw,40px);backdrop-filter:blur(14px);background:rgba(10,10,10,.92);border-bottom:1px solid rgba(255,255,255,.05)}
+  padding:12px clamp(16px,4vw,40px);backdrop-filter:blur(16px) saturate(140%);background:rgba(0,0,0,.6);border-bottom:1px solid var(--line)}
 .brand{display:flex;align-items:center;gap:10px;font-weight:750;letter-spacing:-.01em;color:var(--text);text-decoration:none;font-size:17px;white-space:nowrap}
 .logo{width:22px;height:22px;flex:none}
 .top nav{display:flex;align-items:center;gap:16px}
@@ -39,13 +41,22 @@ svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke
   grid-template-columns:minmax(0,1fr) minmax(300px,400px);grid-template-areas:"intro stage" "flow stage";column-gap:28px;align-items:start}
 .intro{grid-area:intro}.flow{grid-area:flow;min-width:0}
 .stage{grid-area:stage;position:sticky;top:72px;margin-top:22px}
-.hero{padding:30px 2px 6px}
-.hero h1{font-size:clamp(32px,4.4vw,50px);line-height:1.03;letter-spacing:-.035em;margin:0 0 14px;font-weight:750}
-.hero p{color:var(--muted);max-width:600px;font-size:16.5px;margin:0}
+.hero{padding:56px 2px 18px}
+.hero h1{font-size:clamp(40px,6vw,76px);line-height:1;letter-spacing:-.045em;margin:0 0 20px;font-weight:650;text-wrap:balance}
+.hero h1 span{color:var(--muted)}
+.hero p{color:var(--muted);max-width:560px;font-size:17px;line-height:1.55;margin:0;text-wrap:pretty}
+.hero .eyebrow{display:inline-flex;align-items:center;gap:8px;margin:0 0 22px;font-size:12.5px;font-weight:600;color:var(--muted);padding:5px 12px 5px 8px;border-radius:999px;border:1px solid var(--line2);background:rgba(255,255,255,.04)}
+.eyebrow .pp-dot{box-shadow:0 0 0 3px var(--acc-soft)}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
-.chips span{font-size:12.5px;padding:5px 11px;border-radius:99px;border:1px solid var(--line);color:var(--muted);background:rgba(255,255,255,.02)}
+.chips span{font-size:12.5px;padding:5px 11px;border-radius:99px;border:1px solid var(--line);color:var(--muted);background:rgba(255,255,255,.03);backdrop-filter:blur(6px)}
 
-.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:clamp(16px,2.4vw,24px);margin:18px 0;box-shadow:0 10px 40px rgba(0,0,0,.25);min-width:0}
+/* cinematic scene behind the hero: the real example output, blurred and faded into the black canvas */
+.aura{position:absolute;inset:0 0 auto 0;height:min(760px,95vh);z-index:-1;overflow:hidden;pointer-events:none}
+.aura img{position:absolute;inset:-10%;width:120%;height:120%;object-fit:cover;filter:blur(70px) saturate(130%);opacity:.42;transform:scale(1.1)}
+.aura:after{content:"";position:absolute;inset:0;background:radial-gradient(120% 80% at 70% 0%,transparent 0%,rgba(0,0,0,.55) 55%,#000 100%),linear-gradient(180deg,rgba(0,0,0,.25),#000 92%)}
+body{position:relative;isolation:isolate}
+
+.card{background:rgba(17,17,17,.86);border:1px solid var(--line);border-radius:20px;padding:clamp(16px,2.4vw,26px);margin:18px 0;min-width:0;backdrop-filter:blur(20px)}
 .card-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px}
 h2{font-size:17px;margin:0;letter-spacing:-.01em}
 h3{font-size:15px;margin:0 0 10px}
@@ -107,10 +118,10 @@ button.primary:disabled{opacity:1;background:var(--panel2);color:var(--muted);bo
 .opt{font-size:11.5px;font-weight:600;color:var(--dim);margin-left:4px}
 
 /* upload */
-.drop{display:block;border:2px dashed var(--line3);border-radius:16px;padding:24px 22px;cursor:pointer;transition:.15s var(--ease);background:var(--panel2)}
-.drop.empty{border-color:var(--acc-line)}
-.drop.over{border-color:var(--acc);background:#1b1c12}
-@media (hover:hover){.drop:hover{border-color:var(--acc);background:#1b1c12}}
+.drop{display:block;border:1.5px dashed var(--line3);border-radius:16px;padding:26px 22px;cursor:pointer;transition:.15s var(--ease);background:var(--panel2)}
+.drop.empty{padding:34px 22px}
+.drop.over{border-color:var(--acc);border-style:solid;background:#15160d}
+@media (hover:hover){.drop:hover{border-color:rgba(255,255,255,.45);background:#1c1c1c}}
 .drop-in{display:flex;gap:16px;align-items:center}
 .drop-in small{color:var(--muted)}
 .drop-ic{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;background:var(--text);color:var(--bg);flex:none}
@@ -214,20 +225,36 @@ canvas#curve{width:100%;height:64px;display:block;cursor:crosshair}
 .recent a.on{border-color:var(--acc-line);color:var(--text)}
 
 /* sticky preview */
-.stage-card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px;display:grid;gap:12px}
+.stage-card{background:rgba(17,17,17,.86);border:1px solid var(--line);border-radius:24px;padding:14px;display:grid;gap:12px;backdrop-filter:blur(20px)}
 .stage-h{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .stage-tag{font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
 .stage-tabs{display:flex;gap:4px;padding:3px;border-radius:999px;background:var(--bg2);border:1px solid var(--line)}
 .stage-tabs button{padding:5px 12px;border:0;border-radius:999px;font-size:12.5px;color:var(--muted)}
 .stage-tabs button.on{background:var(--raise);color:var(--text)}
-.stage-frame{display:grid;place-items:center;background:#000;border-radius:14px;overflow:hidden}
+.stage-frame{position:relative;display:grid;place-items:center;background:#000;border-radius:16px;overflow:hidden}
 .stage-frame video{display:block;aspect-ratio:9/16;height:min(560px,calc(100vh - 290px));max-width:100%;object-fit:contain;background:#000}
 .stage-chips{display:flex;flex-wrap:wrap;gap:6px}
 .stage-chips span{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;padding:4px 10px 4px 4px;border-radius:99px;border:1px solid var(--line2);color:var(--muted)}
 .stage-chips i{font-style:normal;font-size:11px;font-weight:800;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;background:var(--raise);color:var(--text)}
 .stage-cap{margin:0;font-size:13.5px;color:var(--muted);line-height:1.5}
 
-.foot{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;color:var(--dim);font-size:12.5px;padding:10px 16px 40px}
+/* live render state on the stage (Runway-style output canvas) */
+.stage-run{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;gap:10px;padding:22px;
+  background:linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,.88) 70%);backdrop-filter:blur(10px)}
+.sr-k{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--acc);display:flex;align-items:center;gap:8px}
+.sr-k .pp-dot{animation:pulse 1.4s infinite}
+.sr-t{font-size:clamp(26px,2.6vw,34px);line-height:1.05;letter-spacing:-.035em;font-weight:650;margin:0;text-wrap:balance}
+.sr-s{margin:0;color:var(--muted);font-size:13.5px;font-variant-numeric:tabular-nums}
+.sr-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:6px}
+.sr-bar i{height:3px;border-radius:2px;background:rgba(255,255,255,.14);overflow:hidden;position:relative}
+.sr-bar i.done{background:var(--acc)}
+.sr-bar i.run:after{content:"";position:absolute;inset:0;width:40%;background:var(--acc);border-radius:2px;animation:slide 1.6s var(--ease) infinite}
+.sr-bar i.skip{opacity:.35}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(260%)}}
+.stage-run.err .sr-k{color:var(--bad)}.stage-run.err .sr-k .pp-dot{background:var(--bad);animation:none}
+.foot{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;color:var(--dim);font-size:12.5px;padding:28px 16px 40px;border-top:1px solid var(--line);margin-top:20px}
+.foot #health{font-size:11.5px;color:#5c5c5c}
+.foot #health.warn{color:var(--warn)}
 .foot a{color:var(--muted)}
 
 /* pay sheet: right drawer on desktop, bottom sheet on phones */
@@ -242,8 +269,8 @@ body.sheet-open{overflow:hidden}
 .seg{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr));gap:3px;padding:3px;border-radius:999px;background:var(--bg2);border:1px solid var(--line)}
 .seg button{border:0;border-radius:999px;color:var(--muted);padding:8px 8px;font-size:13.5px;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .seg button small{color:var(--dim);font-weight:500;margin-left:2px}
-.seg button.on{background:var(--acc);color:var(--acc-ink)}
-.seg button.on small{color:rgba(10,10,10,.7)}
+.seg button.on{background:var(--text);color:var(--bg)}
+.seg button.on small{color:rgba(0,0,0,.6)}
 @media (hover:hover){.seg button:not(.on):hover:not(:disabled){background:rgba(255,255,255,.06);color:var(--text)}}
 .key-msg{margin:0;font-size:13.5px;color:var(--muted)}
 .key-msg a{color:var(--text)}

@@ -48,10 +48,11 @@ async function loadHealth() {
     const bits = [`v${HEALTH.version}`];
     if (HEALTH.server_key) bits.push("server has a Comfy key (yours is optional)");
     if (!HEALTH.ffmpeg) bits.push("ffmpeg missing on the server!");
-    bits.push(HEALTH.eyes.ok ? "eye check on" : `eye check off: ${HEALTH.eyes.error}`);
+    bits.push(HEALTH.eyes.ok ? "eye check on" : "eye check off");
     bits.push(`${HEALTH.max_jobs} jobs in parallel`);
     $("health").textContent = bits.join(" · ");
-    $("health").className = "muted small" + (!HEALTH.ffmpeg || !HEALTH.eyes.ok ? " warn" : "");
+    $("health").title = HEALTH.eyes.ok ? "" : HEALTH.eyes.error || "";
+    $("health").className = "muted small" + (!HEALTH.ffmpeg ? " warn" : "");
     $("pwRow").classList.toggle("hidden", !HEALTH.password);
   } catch (e) { $("health").textContent = e.message; }
 }
@@ -376,11 +377,30 @@ function watch() {
     setSteps();
     const secs = j.started ? Math.round(Date.now() / 1000 - j.started) : 0;
     $("runMsg").textContent = j.status === "running" ? `${j.step}${j.comfy ? " · " + j.comfy : ""} · ${secs} s` : "";
+    stageRun(j, secs);
     if (j.status === "error") { $("runErr").textContent = j.error; $("runBadge").textContent = "stopped"; $("runBadge").className = "badge warn"; clearInterval(poll); loadConfig(); }
     if (j.status === "done") { clearInterval(poll); $("runBadge").textContent = "done"; $("runBadge").className = "badge ok"; $("runCard").classList.add("hidden"); showResult(); showPick(); loadRecent(); loadConfig(); }
   };
   tick();
   poll = setInterval(tick, 2500);
+}
+
+// the stage doubles as the live render canvas while a job runs
+const RUN_TITLES = {stills: "Shooting 8 new angles", orbit: "Flying the camera through frozen time", upscale: "Sharpening frozen time", render: "Splicing it back into your take"};
+function stageRun(j, secs) {
+  const box = $("stageRun"), on = j.status === "running" || j.status === "error";
+  box.classList.toggle("hidden", !on); box.classList.toggle("err", j.status === "error");
+  if (!on) { if ($("stageTag").textContent.startsWith("Render")) stageView(P && P.render ? "mine" : "ex"); return; }
+  if (j.status === "running" && !(P && P.render)) stageView("ex");
+  $("stageTag").textContent = j.status === "error" ? "Render stopped" : "Rendering yours";
+  const order = ["stills", "orbit", "upscale", "render"], cur = order.indexOf(j.step);
+  $("srK").textContent = j.status === "error" ? "Stopped" : `Step ${Math.max(cur, 0) + 1} of 4`;
+  $("srT").textContent = j.status === "error" ? "Something went wrong" : RUN_TITLES[j.step] || "Rendering";
+  $("srS").textContent = j.status === "error" ? "The details are in the progress card." : `${j.comfy ? j.comfy + " · " : ""}${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")} elapsed`;
+  for (const i of $("srBar").children) {
+    const k = order.indexOf(i.dataset.s);
+    i.className = k < cur ? "done" : k === cur && j.status === "running" ? "run" : "";
+  }
 }
 
 function showResult() {
