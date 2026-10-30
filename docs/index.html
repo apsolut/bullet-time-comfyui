@@ -224,7 +224,7 @@ footer a{color:var(--mut)}
     </div>
     <div class="phone">
       <video src="media/demo.mp4" poster="media/poster.jpg" autoplay muted loop playsinline controls preload="metadata"></video>
-      <div class="lbl">real Comfy Cloud output · orbit-360, all 8 views</div>
+      <div class="lbl">real Comfy Cloud output · orbit-360 · LTX-2.5</div>
     </div>
   </div>
 </header>
@@ -263,7 +263,7 @@ footer a{color:var(--mut)}
     <div>
       <div class="kicker">One frozen frame, a full turn</div>
       <h2>Drag to walk around the moment</h2>
-      <p class="sub" style="margin-bottom:0">These are 32 frames of a real <code>orbit-360</code> render from Comfy Cloud. Qwen saw one frame of a phone selfie and invented the rest of the ring; LTX flew a continuous camera through those views while time stood still.</p>
+      <p class="sub" style="margin-bottom:0">These are 32 frames of a real <code>orbit-360</code> render from Comfy Cloud. Qwen saw one frame of a phone selfie and invented the rest of the ring; <span style="color:#c4b5fd">LTX-2.5</span> flew a continuous camera through those views while time stood still.</p>
       <input type="range" id="deg" min="0" max="31" value="0" aria-label="Orbit position" style="margin-top:24px">
       <div class="dial-l"><span>0° real frame</span><span>180° behind</span><span>360°</span></div>
     </div>
@@ -473,7 +473,7 @@ footer a{color:var(--mut)}
 </footer>
 
 <script>
-// Drag-to-orbit over 32 frames of the real LTX orbit (sprite, one full turn, wraps around)
+// Drag-to-orbit over 32 frames of the real LTX-2.5 orbit (sprite, one full turn, wraps around)
 (function(){
   var N=32, frame=document.getElementById('frame'), name=document.getElementById('vname'), range=document.getElementById('deg'), cur=0;
   function show(i){
