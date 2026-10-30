@@ -17,7 +17,7 @@ import uuid
 from pathlib import Path
 from typing import Callable
 
-from . import arcs, assemble, comfy, orient, pick, workflows
+from . import arcs, assemble, comfy, eyes, orient, pick, workflows
 from .util import probe, run
 
 Log = Callable[[str], None]
@@ -95,6 +95,12 @@ def check_view(view: str, still: Path, real: Path) -> tuple[bool, str]:
 def stills(p: Project, t: float | None = None, key=None, seed: int | None = None, log: Log = _noop,
            on_status: Callable[[dict], None] | None = None) -> dict:
     t = p.state["t"] if t is None else float(t)
+    fps = p.state["info"].get("fps") or 30.0
+    f = int(round(t * fps))
+    f_open = eyes.nearest_open((p.state.get("analysis") or {}).get("blink"), f)
+    if f_open != f:
+        log(f"eyes closed at {t:.2f}s, freezing {f_open - f:+d} frames later at {f_open / fps:.2f}s instead")
+        t = f_open / fps
     real = freeze_frame(p, t)
     wf, bindings, rename = workflows.stills_workflow()
     seed = random.randint(0, 2**40) if seed is None else seed
@@ -135,13 +141,13 @@ def orbit(p: Project, arc: str = arcs.DEFAULT_ARC, key=None, seed: int | None = 
     ok = usable_views(p)
     if not arcs.available(arc, ok):
         raise ValueError(f"{arc}: its end view has no usable still; re-roll the stills or pick another arc")
-    keys = [k for k in arcs.ARCS[arc]["keys"] if k == "real" or k in ok]
+    keys = [k for k in arcs.ARCS[arc]["keys"] if arcs.is_real(k) or k in ok]
     w, h = workflows.orbit_size(p.state["info"]["width"], p.state["info"]["height"])
     wf, bindings = workflows.build_orbit(arc, w, h, guide_strength=guide, keys=keys)
     seed = random.randint(0, 2**48) if seed is None else seed
     values = {"prompt": workflows.orbit_prompt(arc, subject, sound), "seed": seed, "real": str(p.path(p.state["real"]))}
     for k in keys:
-        if k != "real":
+        if not arcs.is_real(k):
             values[k] = str(p.path(st["views"][k]["path"]))
     out_dir = p.path(f"orbits/{arc}_{seed}")
     dropped = [k for k in arcs.ARCS[arc]["keys"] if k not in keys]

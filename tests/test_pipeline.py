@@ -57,7 +57,8 @@ def test_arcs_start_and_end_on_the_real_frame():
         idx = dict(zip(a["keys"], arcs.key_frame_idx(name)))
         play = a["play"]
         real = a["keys"].index("real")
-        assert play[0][0] == real and play[-1][1] == real, name
+        end = a["keys"].index("real_end") if "real_end" in a["keys"] else real
+        assert play[0][0] == real and play[-1][1] == end, name
         for (x0, x1, _), (y0, _, _) in zip(play, play[1:]):
             assert x1 == y0, f"{name}: playback must be continuous"
         assert all(i % 8 == 0 for i in idx.values()), "LTX guides need frame indices divisible by 8"
@@ -71,7 +72,7 @@ def test_orbit_graph_is_closed_and_bound():
             for v in node["inputs"].values():
                 if isinstance(v, list) and len(v) == 2 and isinstance(v[0], str):
                     assert v[0] in wf, f"{name}: node {nid} links to missing {v[0]}"
-        assert set(arcs.ARCS[name]["keys"]) <= set(b)
+        assert set(arcs.ARCS[name]["keys"]) - {"real_end"} <= set(b)
         filled = comfy.patch_workflow(wf, b, {"prompt": workflows.orbit_prompt(name), "seed": 7})
         assert "frozen" in filled["5"]["inputs"]["text"]
         guides = sorted(n["inputs"]["frame_idx"] for n in wf.values() if n["class_type"] == "LTXVAddGuide")
@@ -170,3 +171,13 @@ def test_server_flow(take, tmp_path, monkeypatch):
     assert c.get(f"/api/projects/{pid}/files/../../etc/passwd").status_code == 404
     assert "k" not in (tmp_path / "projects" / pid / "state.json").read_text().split('"')  # key never stored
     assert c.post(f"/api/projects/{pid}/generate", json={"arc": "orbit-left"}).json()["jobs"] == ["orbit"]
+
+
+def test_closed_eyes_are_never_frozen():
+    from bullettime import eyes
+    blink = [0.1] * 10 + [0.8, 0.9, 0.7] + [0.1] * 10  # a blink at frames 10-12
+    closed = eyes.closed_frames(blink)
+    assert {8, 9, 10, 11, 12, 13, 14} <= closed and 7 not in closed and 15 not in closed
+    assert eyes.nearest_open(blink, 11) == 15  # later first: the eyes reopen forwards
+    assert eyes.nearest_open(blink, 3) == 3
+    assert eyes.nearest_open(None, 11) == 11  # no detector: unchanged

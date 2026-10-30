@@ -10,7 +10,9 @@ readme = "README.md"
 license = {text = "MIT"}
 authors = [{name = "Aleksandar Perisic"}]
 requires-python = ">=3.10"
-dependencies = ["numpy", "requests", "opencv-python-headless<5", "Pillow>=10",
+# mediapipe (eye check) needs opencv-contrib-python, so that is the one OpenCV package (two would clash);
+# <5 because OpenCV 5 no longer ships the Haar cascades orient.py uses
+dependencies = ["numpy", "requests", "mediapipe>=0.10.30", "opencv-contrib-python<5", "Pillow>=10",
                 "fastapi>=0.110", "uvicorn>=0.29", "python-multipart>=0.0.9"]
 
 [project.optional-dependencies]

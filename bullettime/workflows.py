@@ -54,7 +54,7 @@ def build_orbit(arc: str, width: int = 704, height: int = 1280, dist_strength: f
     """-> (API workflow, bindings). keys: the arc's views that have a usable still (default: all of them).
     The real frame is LoadImage "real.png"; view v is LoadImage "kf_<v>.png"."""
     a = arcs.ARCS[arc]
-    keys = [k for k in a["keys"] if keys is None or k in keys or k == "real"]
+    keys = [k for k in a["keys"] if keys is None or k in keys or arcs.is_real(k)]
     idx = dict(zip(a["keys"], arcs.key_frame_idx(arc)))
     length = arcs.frames(arc)
     W: dict = {}
@@ -74,12 +74,14 @@ def build_orbit(arc: str, width: int = 704, height: int = 1280, dist_strength: f
     # keyframe images (loaded once, resized per stage)
     loads = {}
     for j, k in enumerate(keys):
-        loads[k] = n(100 + j, "LoadImage", image="real.png" if k == "real" else f"kf_{k}.png")
+        if k != "real_end":  # the end frame reuses the real frame's image
+            loads[k] = n(100 + j, "LoadImage", image="real.png" if k == "real" else f"kf_{k}.png")
 
     def prep(k, w, h, base):
         rs = n(base, "ResizeImageMaskNode", **{"resize_type": "scale dimensions", "resize_type.width": w,
                                                "resize_type.height": h, "resize_type.crop": "center",
-                                               "scale_method": "lanczos", "input": [loads[k], 0]})
+                                               "scale_method": "lanczos",
+                                               "input": [loads["real" if arcs.is_real(k) else k], 0]})
         return n(base + 1, "LTXVPreprocess", img_compression=18, image=[rs, 0])
 
     def guides(stage, w, h, p_, n_, lat):
@@ -92,7 +94,7 @@ def build_orbit(arc: str, width: int = 704, height: int = 1280, dist_strength: f
             else:
                 g = n(203 + stage * 100 + j * 4, "LTXVAddGuide", positive=p_, negative=n_, vae=[ck, 2],
                       latent=lat, image=[img, 0], frame_idx=idx[k],
-                      strength=1.0 if k == "real" else guide_strength)
+                      strength=1.0 if arcs.is_real(k) else guide_strength)
                 p_, n_, lat = [g, 0], [g, 1], [g, 2]
         return p_, n_, lat
 

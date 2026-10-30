@@ -23,7 +23,10 @@ real audio .... | pitched down | generated whoosh (LTX audio)     | reversed    
 
 1. **Pick the moment (free, CPU).** OpenCV scores every frame by *motion x sharpness*: bullet time wants the
    peak of the action, but the peak is where frames blur, and a blurred freeze becomes a blurred statue. The
-   sharpest frame near a motion peak wins. You can scrub and pick any frame yourself.
+   sharpest frame near a motion peak wins. Frames with closed eyes are ruled out first with
+   [MediaPipe Face Landmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker) (open model,
+   Apache-2.0, 3.7 MB, downloaded once): a blink in the frozen frame is copied into all 8 views and the face drifts.
+   You can scrub and pick any frame yourself; a closed-eyes pick is moved to the nearest open-eyes frame.
 2. **8 views of the frozen frame (1 Qwen job, ~$0.045).** The Comfy Cloud template *Qwen 1 Click Multiple
    Character Angles* with all 8 prompts in the LoRA's trained format: `<sks> front-right quarter view
    eye-level shot medium shot`, right side, back-right, back, front-left, left side, back-left and a high
@@ -45,6 +48,7 @@ real audio .... | pitched down | generated whoosh (LTX audio)     | reversed    
 | `orbit-right` / `orbit-left` | real → front quarter → side | 4.0 s |
 | `sweep` (Matrix) | left side → front-left → **real** → front-right → right side, played real → right → left → real | 4.8 s |
 | `half-right` | real → front-right → right → back-right → back | 5.6 s |
+| `orbit-360` | real → all 7 views around → real | 6.4 s |
 | `crane` | real → high angle | 3.0 s |
 
 About **$0.10 per bullet time** on Comfy Cloud. Re-rolling only the orbit (same views) is one job; changing

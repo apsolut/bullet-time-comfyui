@@ -1,6 +1,7 @@
 numpy
 requests
-opencv-python-headless<5
+mediapipe>=0.10.30
+opencv-contrib-python<5
 Pillow>=10
 fastapi>=0.110
 uvicorn>=0.29

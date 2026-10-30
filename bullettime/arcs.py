@@ -56,6 +56,12 @@ ARCS: dict[str, dict] = {
         "move": "half orbit from the front, around the right side, to behind",
         "play": [(0, 4, 1.0), (4, 0, 2.5)],
     },
+    # "real_end" is the real frame again as the last keyframe, so a full turn lands back on the take
+    "orbit-360": {
+        "label": "Full orbit (360°)", "keys": ["real", "fr", "r", "br", "b", "bl", "l", "fl", "real_end"], "gap": 24,
+        "move": "full 360 degree orbit, all the way around and back to the front of",
+        "play": [(0, 8, 1.25)],
+    },
     "crane": {
         "label": "Crane up", "keys": ["real", "up"], "gap": 48,
         "move": "crane move rising up and tilting down onto",
@@ -64,6 +70,10 @@ ARCS: dict[str, dict] = {
 }
 DEFAULT_ARC = "orbit-right"
 STILL_VIEWS = list(VIEWS)  # the Qwen job always renders all 8, so any arc can be tried without a new job
+
+
+def is_real(key: str) -> bool:
+    return key in ("real", "real_end")
 
 
 def frames(arc: str) -> int:
@@ -93,5 +103,5 @@ def freeze_seconds(arc: str, fps: float = 24.0) -> float:
 def available(arc: str, ok_views: set[str]) -> bool:
     """An arc needs its real frame plus at least its last key view (middle keys may be dropped)."""
     keys = ARCS[arc]["keys"]
-    ends = [k for k in (keys[0], keys[-1]) if k != "real"]
+    ends = [k for k in (keys[0], keys[-1]) if not is_real(k)]
     return all(k in ok_views for k in ends)
