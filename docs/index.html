@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bullet Time from one phone shot</title>
+<meta name="description" content="Freeze any moment of your phone take and fly the camera around it. Open weights ComfyUI app: Qwen-Image-Edit 2511 + LTX-2.3.">
+<meta property="og:title" content="Bullet Time from one phone shot">
+<meta property="og:description" content="Freeze any moment of your take and fly the camera around it. Then the take carries on.">
+<meta property="og:image" content="media/views.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0b0a10;--fg:#f2eef8;--mut:#a59fb5;--line:#2a2635;--acc:#ff3fb4;--acc2:#7c5cff;--card:#14121c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 Inter,system-ui,sans-serif}
+a{color:var(--acc)}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px}
+header{padding:72px 0 40px}
+.tag{font:600 12px/1 "JetBrains Mono",monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+h1{font-size:clamp(36px,7vw,72px);line-height:1.02;margin:16px 0;font-weight:800;letter-spacing:-.03em}
+h1 span{background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.lede{font-size:clamp(17px,2.2vw,21px);color:var(--mut);max-width:680px}
+.cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
+.btn{display:inline-block;padding:12px 20px;border-radius:10px;font-weight:600;text-decoration:none;border:1px solid var(--line);color:var(--fg)}
+.btn.p{background:var(--acc);border-color:var(--acc);color:#120814}
+.demo{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr);gap:28px;align-items:start;margin:24px 0 64px}
+.demo video{width:100%;border-radius:16px;border:1px solid var(--line);background:#000;aspect-ratio:9/16}
+.demo .note{color:var(--mut);font-size:15px}
+.views{width:100%;border-radius:12px;border:1px solid var(--line);margin-top:12px}
+h2{font-size:28px;margin:0 0 20px;letter-spacing:-.01em}
+section{padding:48px 0;border-top:1px solid var(--line)}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;counter-reset:s}
+.step{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+.step:before{counter-increment:s;content:"0" counter(s);font:600 13px "JetBrains Mono",monospace;color:var(--acc)}
+.step h3{margin:8px 0 6px;font-size:18px}
+.step p{margin:0;color:var(--mut);font-size:15px}
+.step .cost{display:block;margin-top:10px;font:12px "JetBrains Mono",monospace;color:var(--fg)}
+pre{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;overflow-x:auto;font:13px/1.6 "JetBrains Mono",monospace}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line)}
+th{color:var(--mut);font-weight:600}
+code{font-family:"JetBrains Mono",monospace;font-size:.9em}
+.tl{font:13px/1.8 "JetBrains Mono",monospace;color:var(--mut);overflow-x:auto;white-space:pre}
+footer{padding:40px 0 64px;color:var(--mut);font-size:14px;border-top:1px solid var(--line)}
+@media (max-width:720px){.demo{grid-template-columns:1fr}.demo video{max-width:360px;margin:0 auto;display:block}header{padding-top:48px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="tag">#OpenSourceHiggsfield · ComfyUI · open weights</div>
+  <h1>Bullet Time from <span>one phone shot</span></h1>
+  <p class="lede">Freeze any moment of your take and fly the camera around it, the way a ring of 100 cameras would. Then the camera lands back on your real frame and the take carries on, with its real sound.</p>
+  <div class="cta">
+    <a class="btn p" href="https://github.com/apsolut/bullet-time-comfyui">Get it on GitHub</a>
+    <a class="btn" href="#run">Run it in 3 commands</a>
+  </div>
+</header>
+
+<div class="demo">
+  <video src="media/demo.mp4" poster="media/poster.jpg" controls loop muted playsinline autoplay></video>
+  <div>
+    <h2>One take in, bullet time out</h2>
+    <p class="note">The app finds the peak of the action, freezes it, makes 8 camera views of that exact frame with Qwen-Image-Edit 2511, and lets LTX-2.3 fly the camera through them while time stands still. The whoosh is generated in the same pass.</p>
+    <img class="views" src="media/views.jpg" alt="The real frozen frame followed by the 8 generated camera views">
+    <p class="note">The real frame, then the 8 generated views (front quarters, sides, back, high angle).</p>
+  </div>
+</div>
+
+<section>
+  <h2>How it works</h2>
+  <div class="tl">real take ..... | slow-mo ramp | camera orbits the frozen moment | rewinds home | real take resumes .....
+real audio .... | pitched down | generated whoosh (LTX audio)     | reversed     | real audio ............</div>
+  <div class="steps" style="margin-top:24px">
+    <div class="step"><h3>Pick the moment</h3><p>OpenCV scores every frame by motion x sharpness, so the freeze lands on the peak without blur. Scrub to override.</p><span class="cost">free, CPU</span></div>
+    <div class="step"><h3>8 views</h3><p>Qwen-Image-Edit 2511 with the Multiple-Angles LoRA, prompted in its trained format and matched to your framing. Sideways or wrong views are rejected.</p><span class="cost">1 job · ~$0.045</span></div>
+    <div class="step"><h3>The orbit</h3><p>LTX-2.3 22B: your real frame in the latent, each view an LTXVAddGuide keyframe, two stages up to 704x1280, audio included.</p><span class="cost">1 job · ~$0.055</span></div>
+    <div class="step"><h3>Splice</h3><p>ffmpeg ramps into the freeze, plays the orbit, rewinds home and resumes on the very frame it froze on. Both cuts land on the same image.</p><span class="cost">free</span></div>
+  </div>
+</section>
+
+<section>
+  <h2>Camera arcs</h2>
+  <table>
+    <tr><th>Arc</th><th>Path</th><th>Freeze</th></tr>
+    <tr><td><code>orbit-right</code> / <code>orbit-left</code></td><td>real → front quarter → side</td><td>4.0 s</td></tr>
+    <tr><td><code>sweep</code> (Matrix)</td><td>real → right → left → real, 180°</td><td>4.8 s</td></tr>
+    <tr><td><code>half-right</code></td><td>real → right → behind</td><td>5.6 s</td></tr>
+    <tr><td><code>crane</code></td><td>real → high angle</td><td>3.0 s</td></tr>
+  </table>
+</section>
+
+<section id="run">
+  <h2>Run it</h2>
+  <p class="note" style="color:var(--mut)">Python 3.10+ and ffmpeg. No local GPU: generation runs on Comfy Cloud with your own key, about $0.10 per bullet time.</p>
+<pre>git clone https://github.com/apsolut/bullet-time-comfyui && cd bullet-time-comfyui
+python -m venv .venv && .venv\Scripts\activate     # macOS/Linux: . .venv/bin/activate
+pip install -e .
+bullettime serve                                  # http://127.0.0.1:8790</pre>
+  <p class="note" style="color:var(--mut)">Prefer ComfyUI itself? The exact API graphs are in <a href="https://github.com/apsolut/bullet-time-comfyui/tree/main/workflows"><code>workflows/</code></a>, and the web app downloads the graphs used for each result.</p>
+</section>
+
+<section>
+  <h2>Open weights, end to end</h2>
+  <table>
+    <tr><th>Step</th><th>Model</th></tr>
+    <tr><td>Views</td><td><a href="https://huggingface.co/Qwen/Qwen-Image-Edit-2511">Qwen-Image-Edit-2511</a> + <a href="https://huggingface.co/fal/Qwen-Image-Edit-2511-Multiple-Angles-LoRA">Multiple-Angles LoRA</a> + Lightning 4-step</td></tr>
+    <tr><td>Orbit + audio</td><td><a href="https://huggingface.co/Lightricks/LTX-2.3">LTX-2.3</a> 22B fp8, distilled LoRA, x2 spatial upscaler, Gemma 3 text encoder</td></tr>
+  </table>
+  <p class="note" style="color:var(--mut)">No partner or closed API nodes. Only use your own face, or the face of someone who agreed.</p>
+</section>
+
+<footer>
+  MIT © 2026 Aleksandar Perisic · <a href="https://github.com/apsolut/bullet-time-comfyui">GitHub</a> · sibling of <a href="https://github.com/apsolut/one-shot-multicam">one-shot-multicam</a>
+</footer>
+</div>
+</body>
+</html>
