@@ -25,9 +25,13 @@ TEXT_ENCODER = "gemma_3_12B_it_fp4_mixed.safetensors"
 UPSCALER = "ltx-2.3-spatial-upscaler-x2-1.1.safetensors"
 SIG8 = "1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875, 0.0"
 SIG3 = "0.909375, 0.725, 0.421875, 0.0"
-NEGATIVE = ("people moving, walking, talking, blinking, gesturing, morphing, warping, melting face, extra limbs, "
+NEGATIVE = ("people moving, walking, talking, lips moving, blinking, gesturing, hands moving, head turning, "
+            "person turning around, zoom out, morphing, warping, melting face, extra limbs, "
             "camera shake, cut, scene change, cartoon, pc game, video game, ugly, deformed face, extra fingers")
 FPS = 24
+# Strength of the generated views as keyframes (the real frame is always 1.0). At 1.0 LTX hard-cuts to a view
+# whose background doesn't match the previous one; lower lets it bend the view into a continuous move.
+GUIDE_STRENGTH = 0.6
 
 
 def orbit_prompt(arc: str, subject: str = "", sound: str = "whoosh") -> str:
@@ -39,14 +43,14 @@ def orbit_prompt(arc: str, subject: str = "", sound: str = "whoosh") -> str:
     }[sound]
     return (f"Bullet time shot. Time is completely frozen: {who} is perfectly still, suspended mid-motion like a "
             "statue, not blinking, not breathing, hair and clothes frozen in place, dust and droplets hang "
-            "motionless in the air. Only the camera moves: a smooth, continuous, steady "
+            "motionless in the air, mouth and hands locked exactly as they are. The person does not turn; only the camera moves: a smooth, continuous, steady "
             f"{arcs.ARCS[arc]['move']} {who}, at the same distance, keeping {who} centered in frame while the "
             "background slides past with strong parallax. Cinematic, photorealistic, sharp focus, 35mm film. "
             + sounds)
 
 
 def build_orbit(arc: str, width: int = 704, height: int = 1280, dist_strength: float = 0.6,
-                guide_strength: float = 1.0, keys: list[str] | None = None) -> tuple[dict, dict]:
+                guide_strength: float = GUIDE_STRENGTH, keys: list[str] | None = None) -> tuple[dict, dict]:
     """-> (API workflow, bindings). keys: the arc's views that have a usable still (default: all of them).
     The real frame is LoadImage "real.png"; view v is LoadImage "kf_<v>.png"."""
     a = arcs.ARCS[arc]
@@ -87,7 +91,8 @@ def build_orbit(arc: str, width: int = 704, height: int = 1280, dist_strength: f
                          latent=lat, strength=1.0, bypass=False), 0]
             else:
                 g = n(203 + stage * 100 + j * 4, "LTXVAddGuide", positive=p_, negative=n_, vae=[ck, 2],
-                      latent=lat, image=[img, 0], frame_idx=idx[k], strength=guide_strength)
+                      latent=lat, image=[img, 0], frame_idx=idx[k],
+                      strength=1.0 if k == "real" else guide_strength)
                 p_, n_, lat = [g, 0], [g, 1], [g, 2]
         return p_, n_, lat
 

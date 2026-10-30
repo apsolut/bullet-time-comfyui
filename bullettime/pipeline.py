@@ -99,8 +99,10 @@ def stills(p: Project, t: float | None = None, key=None, seed: int | None = None
     wf, bindings, rename = workflows.stills_workflow()
     seed = random.randint(0, 2**40) if seed is None else seed
     out_dir = p.path(f"stills/{real.stem}_{seed}")
-    log(f"stills: 1 Qwen job, 8 views of the frame at {t:.2f}s")
-    rec = comfy.run_workflow(wf, bindings, workflows.stills_values(str(real), seed), out_dir, key,
+    # same framing as the real frame: a "medium shot" view of a selfie close-up makes the orbit zoom out
+    distance = orient.shot_distance(real) or arcs.DISTANCE
+    log(f"stills: 1 Qwen job, 8 views of the frame at {t:.2f}s ({distance})")
+    rec = comfy.run_workflow(wf, bindings, workflows.stills_values(str(real), seed, distance), out_dir, key,
                              on_status=on_status, rename=rename)
     if rec["status"] != "success":
         raise comfy.ComfyError(f"stills job failed: {rec.get('error', rec['status'])}")
@@ -111,7 +113,7 @@ def stills(p: Project, t: float | None = None, key=None, seed: int | None = None
             ok, why = check_view(v, Path(f), real)
             views[v] = {"path": str(Path(f).relative_to(p.dir)), "ok": ok, "reason": why}
     p.state.update(t=t, real=str(real.relative_to(p.dir)),
-                   stills={"t": t, "seed": seed, "prompt_id": rec["prompt_id"], "views": views})
+                   stills={"t": t, "seed": seed, "distance": distance, "prompt_id": rec["prompt_id"], "views": views})
     p.state.setdefault("prompt_ids", []).append(rec["prompt_id"])
     p.save()
     return p.state["stills"]
@@ -123,7 +125,8 @@ def usable_views(p: Project) -> set[str]:
 
 
 def orbit(p: Project, arc: str = arcs.DEFAULT_ARC, key=None, seed: int | None = None, subject: str = "",
-          sound: str = "whoosh", log: Log = _noop, on_status: Callable[[dict], None] | None = None) -> dict:
+          sound: str = "whoosh", log: Log = _noop, on_status: Callable[[dict], None] | None = None,
+          guide: float = workflows.GUIDE_STRENGTH) -> dict:
     if arc not in arcs.ARCS:
         raise ValueError(f"unknown arc {arc!r} (one of {', '.join(arcs.ARCS)})")
     st = p.state.get("stills")
@@ -134,7 +137,7 @@ def orbit(p: Project, arc: str = arcs.DEFAULT_ARC, key=None, seed: int | None = 
         raise ValueError(f"{arc}: its end view has no usable still; re-roll the stills or pick another arc")
     keys = [k for k in arcs.ARCS[arc]["keys"] if k == "real" or k in ok]
     w, h = workflows.orbit_size(p.state["info"]["width"], p.state["info"]["height"])
-    wf, bindings = workflows.build_orbit(arc, w, h, keys=keys)
+    wf, bindings = workflows.build_orbit(arc, w, h, guide_strength=guide, keys=keys)
     seed = random.randint(0, 2**48) if seed is None else seed
     values = {"prompt": workflows.orbit_prompt(arc, subject, sound), "seed": seed, "real": str(p.path(p.state["real"]))}
     for k in keys:
@@ -149,7 +152,7 @@ def orbit(p: Project, arc: str = arcs.DEFAULT_ARC, key=None, seed: int | None = 
         raise comfy.ComfyError(f"orbit job failed: {rec.get('error', rec['status'])}")
     clip = Path(vids[0]).rename(out_dir / "orbit.mp4")
     p.state["orbit"] = {"arc": arc, "seed": seed, "keys": keys, "dropped": dropped, "subject": subject, "sound": sound,
-                        "prompt_id": rec["prompt_id"], "path": str(clip.relative_to(p.dir)), "t": p.state["t"]}
+                        "guide": guide, "prompt_id": rec["prompt_id"], "path": str(clip.relative_to(p.dir)), "t": p.state["t"]}
     p.state.setdefault("prompt_ids", []).append(rec["prompt_id"])
     p.save()
     return p.state["orbit"]

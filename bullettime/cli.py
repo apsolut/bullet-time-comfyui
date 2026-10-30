@@ -59,6 +59,8 @@ def main(argv=None) -> None:
         o.add_argument("--seed", type=int)
         o.add_argument("--subject", default="", help='who is frozen, e.g. "the woman in the red jacket"')
         o.add_argument("--sound", default="whoosh", choices=["whoosh", "silent"])
+        o.add_argument("--guide", type=float, default=workflows.GUIDE_STRENGTH,
+                       help="keyframe strength of the generated views (lower = smoother, looser)")
         o.add_argument("--dry-run", action="store_true", help="print the plan and cost, spend nothing")
 
     r = sub.add_parser("render", help="splice the orbit into the take (free)")
@@ -120,7 +122,8 @@ def main(argv=None) -> None:
             bad = {v: r["reason"] for v, r in p.state["stills"]["views"].items() if not r["ok"]}
             if bad:
                 print(f"  rejected stills: {bad}")
-        pipeline.orbit(p, args.arc, seed=args.seed, subject=args.subject, sound=args.sound, log=_log, on_status=_status)
+        pipeline.orbit(p, args.arc, seed=args.seed, subject=args.subject, sound=args.sound, log=_log, on_status=_status,
+                       guide=args.guide)
         if args.cmd == "run":
             rep = pipeline.render(p, log=_log)
             out = p.path(rep["out"])

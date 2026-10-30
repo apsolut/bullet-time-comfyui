@@ -146,6 +146,8 @@ def test_server_flow(take, tmp_path, monkeypatch):
     from fastapi.testclient import TestClient
     from bullettime.server import create_app
     monkeypatch.setattr(comfy, "run_workflow", fake_run_workflow)
+    monkeypatch.delenv("COMFY_API_KEY", raising=False)  # the 401 check below needs no key in the env
+    monkeypatch.delenv("COMFY_CLOUD_API_KEY", raising=False)
     c = TestClient(create_app(tmp_path))
     with open(take, "rb") as f:
         r = c.post("/api/projects", files={"file": ("take.mp4", f, "video/mp4")})

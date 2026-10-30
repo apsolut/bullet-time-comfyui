@@ -91,6 +91,20 @@ def _faces(g):
     return best
 
 
+def shot_distance(path: str | Path) -> str | None:
+    """The Multiple-Angles LoRA distance token that matches how tight `path` is framed, judged by the height
+    of the largest face: "close-up" (selfie), "medium shot" or "wide shot". None if no face/detector."""
+    try:
+        g, _ = _gray(path)
+        f = _faces(g)
+    except Exception:  # noqa: BLE001
+        return None
+    if not f:
+        return None
+    r = f[3] / g.shape[0]
+    return "close-up" if r > 0.3 else "wide shot" if r < 0.1 else "medium shot"
+
+
 def face_scores(path: str | Path) -> dict[int, int] | None:
     """{roll: face area} for the image turned by 0/90/270 degrees clockwise; None if OpenCV/Pillow is missing."""
     try:

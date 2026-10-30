@@ -2,6 +2,8 @@
 
 **Freeze any moment of your take and fly the camera around it. Then the take carries on.**
 
+Project page: https://apsolut.github.io/bullet-time-comfyui/
+
 You film one normal clip on your phone: a jump, a hair flip, a throw, a splash. Bullet Time finds the peak of
 the action, freezes it, and generates the camera move that a ring of 100 cameras would have given you:
 an orbit to the side, a 180° Matrix sweep, a half orbit behind you, or a crane up. The camera then flies back
@@ -72,6 +74,7 @@ bullettime analyze take.mp4                       # free: where would it freeze?
 bullettime -P work run take.mp4 --arc sweep --dry-run      # plan + cost, spends nothing
 bullettime -P work run take.mp4 --arc sweep --out bt.mp4   # everything
 bullettime -P work orbit --arc orbit-left         # re-roll with the same views (1 job)
+bullettime -P work orbit --guide 0.8              # stick closer to the views (default 0.6)
 bullettime -P work render --ramp 0.8 --slow 4     # free re-render
 bullettime workflow --arc sweep > sweep_api.json  # the exact graph, for ComfyUI
 ```
