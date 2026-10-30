@@ -76,6 +76,7 @@ async function loadRecent() {
 async function open(pid) {
   try {
     P = await api("GET", `/api/projects/${pid}`);
+    OPEN.clear();
     history.replaceState(null, "", `#${P.id}`);
     showPick();
     if (P.job && P.job.status === "running") watch(); else showResult();
@@ -465,6 +466,43 @@ $("share").onclick = async () => {
 };
 $("shareCopy").onclick = () => copyShare($("shareUrl").value);
 
+// history: recent results in this browser for an hour (top right of the header)
+const HIST_KEY = "bt_hist", HIST_MS = 60 * 60 * 1000;
+function histLoad() {
+  try { return JSON.parse(localStorage.getItem(HIST_KEY) || "[]").filter((h) => Date.now() - h.at < HIST_MS); } catch { return []; }
+}
+function histSave(list) { try { localStorage.setItem(HIST_KEY, JSON.stringify(list.slice(0, 12))); } catch {} }
+function histAdd() {
+  if (!P || !P.render) return;
+  const o = P.orbit || {}, prev = histLoad().find((h) => h.id === P.id);
+  const list = histLoad().filter((h) => h.id !== P.id);
+  list.unshift({id: P.id, at: Date.now(), name: takeName || (prev && prev.name) || "", move: (ARCS[o.arc] || {}).label || o.arc || "", loop: file(P.render.orbit_only)});
+  histSave(list); renderHist();
+}
+function ago(ms) { const m = Math.round((Date.now() - ms) / 60000); return m < 1 ? "just now" : `${m} min ago`; }
+function renderHist() {
+  const list = histLoad(), box = $("histList");
+  $("histBtn").classList.toggle("hidden", !list.length);
+  box.innerHTML = "";
+  for (const h of list) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "hist-item" + (P && P.id === h.id ? " on" : "");
+    b.innerHTML = `<video src="${esc(h.loop)}" muted loop playsinline preload="metadata"></video><span><b>${esc(h.name || "Bullet time")}</b><small>${esc(h.move.replace(/\s*\(.*\)$/, ""))} · ${ago(h.at)}</small></span>`;
+    b.onmouseenter = () => b.querySelector("video").play().catch(() => {});
+    b.onmouseleave = () => b.querySelector("video").pause();
+    b.onclick = () => { histOpen(false); takeName = h.name; if (!P || P.id !== h.id) open(h.id); };
+    box.appendChild(b);
+  }
+}
+function histOpen(on) {
+  if (on) renderHist();
+  $("histPanel").classList.toggle("hidden", !on); $("histBtn").setAttribute("aria-expanded", on);
+}
+$("histBtn").onclick = (e) => { e.stopPropagation(); histOpen($("histPanel").classList.contains("hidden")); };
+document.addEventListener("click", (e) => { if (!e.target.closest(".hist-wrap")) histOpen(false); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") histOpen(false); });
+$("stageShare").onclick = () => $("share").click();
+
 function showResult() {
   if (!P.render) return;
   $("resultCard").classList.remove("hidden");
@@ -476,6 +514,7 @@ function showResult() {
   $("dlWf").href = `/api/projects/${P.id}/workflows.zip`;
   $("dlExport").href = `/api/projects/${P.id}/export.zip`;
   showShare(shareLink());
+  histAdd();
   const o = P.orbit;
   $("orbitInfo").textContent = `${ARCS[o.arc].label} · keyframes: ${o.keys.join(", ")}` + (o.dropped.length ? ` · skipped bad views: ${o.dropped.join(", ")}` : "") + ` · seed ${o.seed}` + (o.path_up ? " · upscaled" : "") + (P.spent_usd ? ` · spent $${P.spent_usd.toFixed(2)}` : "");
   $("upscaleBtnT").innerHTML = o.path_up ? "Upscaled ✓ · run again<small>SeedVR2 on the current orbit</small>" : "Upscale orbit<small>SeedVR2, sharper frozen time</small>";
@@ -509,6 +548,7 @@ function stageView(which) {
   $("stageTabs").classList.toggle("hidden", !(P && P.render));
   for (const b of $("stageTabs").children) b.classList.toggle("on", (b.dataset.v === "mine") === !!mine);
   $("result").classList.toggle("hidden", !mine); $("stageEx").classList.toggle("hidden", !!mine);
+  $("stageShare").classList.toggle("hidden", !mine);
   $("stageTag").textContent = mine ? "Your bullet time" : "Example output";
   $("stageCap").textContent = mine ? "Downloads, re-rolls and the slow-mo ramp are in the result card." : "Your take plays, time stops, the camera flies around the frozen moment, and the take carries on. Same audio, same phone shot.";
   if (mine) $("stageEx").pause(); else { $("result").pause(); $("stageEx").play().catch(() => {}); }
@@ -525,6 +565,7 @@ async function boot() {
   await loadConfig();
   try { ARCS = await api("GET", "/api/arcs"); } catch (e) { $("health").textContent = e.message; return; }
   loadRecent();
+  renderHist();
   const pid = location.hash.slice(1);
   if (pid) open(pid);
 }

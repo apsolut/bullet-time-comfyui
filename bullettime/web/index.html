@@ -25,7 +25,14 @@
 <header class="top">
   <a class="brand" href="/"><svg class="logo" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="#f0fe68" stroke-width="2.2" stroke-dasharray="4 2.8"/><circle cx="12" cy="12" r="3.6" fill="#fafafa"/></svg>Bullet Time</a>
   <nav>
-    <a href="/" id="newProject" class="hidden">New take</a>
+    <a href="/" id="newProject" class="hdr-btn hidden" title="Start over with a new take"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg><span>Start over</span></a>
+    <div class="hist-wrap">
+      <button type="button" class="hdr-btn hidden" id="histBtn" aria-haspopup="true" aria-expanded="false" aria-controls="histPanel" title="Your recent bullet times"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>History</span></button>
+      <div class="hist hidden" id="histPanel">
+        <div class="hist-h"><b>Your last hour</b><small>Kept in this browser for 60 minutes</small></div>
+        <div class="hist-list" id="histList"></div>
+      </div>
+    </div>
     <button type="button" class="hdr-pill" id="payPill" aria-haspopup="dialog" aria-controls="paySheet"><span class="pp-dot" aria-hidden="true"></span><span id="payPillT">Free run</span></button>
     <a class="wide-only" href="https://apsolut.github.io/bullet-time-comfyui/" target="_blank" rel="noopener">How it works</a>
     <a class="wide-only" href="https://github.com/apsolut/bullet-time-comfyui" target="_blank" rel="noopener">GitHub</a>
@@ -177,7 +184,10 @@
     <div class="stage-card">
       <div class="stage-h">
         <span class="stage-tag" id="stageTag">Example output</span>
-        <div class="stage-tabs hidden" id="stageTabs"><button type="button" data-v="mine" class="on">Yours</button><button type="button" data-v="ex">Example</button></div>
+        <div class="stage-tools">
+          <div class="stage-tabs hidden" id="stageTabs"><button type="button" data-v="mine" class="on">Yours</button><button type="button" data-v="ex">Example</button></div>
+          <button type="button" class="stage-share hidden" id="stageShare" aria-label="Share your bullet time" title="Share"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></button>
+        </div>
       </div>
       <div class="stage-frame">
         <video id="stageEx" src="/web/example.mp4" poster="/web/example.jpg" muted loop playsinline autoplay preload="metadata"></video>
