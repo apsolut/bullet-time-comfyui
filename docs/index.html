@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Bullet Time from one phone shot</title>
-<meta name="description" content="Freeze any moment of your phone take and fly the camera around it, Matrix style. An open weights ComfyUI app: Qwen-Image-Edit 2511 + LTX-2.3 on Comfy Cloud.">
+<meta name="description" content="Freeze any moment of your phone take and fly the camera around it, Matrix style. An open weights ComfyUI app: Qwen-Image-Edit 2511 + LTX-2.5 on Comfy Cloud.">
 <meta name="theme-color" content="#0b0d10">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://apsolut.github.io/bullet-time-comfyui/">
@@ -202,7 +202,7 @@ footer a{color:var(--mut)}
 <header class="hero" id="top">
   <div class="wrap">
     <div>
-      <a class="new" href="#models"><b>NEW</b><span style="color:#c4b5fd">We support LTX 2.5</span></a>
+      <a class="new" href="#models"><b>NEW</b><span style="color:#c4b5fd">Powered by LTX 2.5</span></a>
       <div class="tag">
         <a class="chip on" href="https://comfy.org/open-source-higgsfield">#OpenSourceHiggsfield</a>
         <span class="chip">ComfyUI</span>
@@ -246,7 +246,7 @@ footer a{color:var(--mut)}
     <div class="steps">
       <div class="step"><h3>Pick the moment</h3><p>OpenCV scores every frame by motion x sharpness, so the freeze lands on the peak without blur. MediaPipe rules out closed eyes: nobody wants to orbit a blink. Scrub to pick your own.</p><span class="cost">free · CPU</span></div>
       <div class="step"><h3>8 views</h3><p>Qwen-Image-Edit 2511 with the Multiple-Angles LoRA, prompted in its trained <code>&lt;sks&gt;</code> format. Each still is checked; a sideways or upside-down view is rejected.</p><span class="cost">1 job · ~$0.045</span></div>
-      <div class="step"><h3>The orbit</h3><p>LTX-2.3 22B: your real frame sits in the latent, every view becomes an <code>LTXVAddGuide</code> keyframe, and the prompt holds time still. Two stages up to 704x1280, audio in the same pass.</p><span class="cost">1 job · ~$0.055</span></div>
+      <div class="step"><h3>The orbit</h3><p><span style="color:#c4b5fd">LTX-2.5</span> 22B: your real frame sits in the latent, every view becomes an <code>LTXVAddGuide</code> keyframe, and the prompt holds time still. Up to 704x1280, audio in the same pass. LTX-2.3 is still one switch away.</p><span class="cost">1 job · ~$0.055</span></div>
       <div class="step"><h3>Splice</h3><p>ffmpeg ramps into the freeze, plays the orbit, rewinds home and resumes on the very frame it froze on.</p><span class="cost">free · ffmpeg</span></div>
     </div>
   </div>
@@ -263,7 +263,7 @@ footer a{color:var(--mut)}
     <div>
       <div class="kicker">One frozen frame, a full turn</div>
       <h2>Drag to walk around the moment</h2>
-      <p class="sub" style="margin-bottom:0">These are 32 frames of a real <code>orbit-360</code> render from Comfy Cloud. Qwen saw one frame of a phone selfie and invented the rest of the ring; LTX-2.3 flew a continuous camera through those views while time stood still.</p>
+      <p class="sub" style="margin-bottom:0">These are 32 frames of a real <code>orbit-360</code> render from Comfy Cloud. Qwen saw one frame of a phone selfie and invented the rest of the ring; LTX flew a continuous camera through those views while time stood still.</p>
       <input type="range" id="deg" min="0" max="31" value="0" aria-label="Orbit position" style="margin-top:24px">
       <div class="dial-l"><span>0° real frame</span><span>180° behind</span><span>360°</span></div>
     </div>
@@ -421,7 +421,7 @@ footer a{color:var(--mut)}
       <table>
         <tr><th>Step</th><th>Model</th><th>License</th></tr>
         <tr><td>8 views</td><td><a href="https://huggingface.co/Qwen/Qwen-Image-Edit-2511">Qwen-Image-Edit-2511</a> + <a href="https://huggingface.co/fal/Qwen-Image-Edit-2511-Multiple-Angles-LoRA">Multiple-Angles LoRA</a> + Lightning 4-step</td><td class="lic">Apache-2.0</td></tr>
-        <tr><td>Orbit + audio</td><td><a href="https://huggingface.co/Lightricks/LTX-2.3">LTX-2.3</a> 22B dev fp8, distilled LoRA 0.6, x2 spatial upscaler, Gemma 3 text encoder. <span style="color:#c4b5fd"><b style="color:#a78bfa">New:</b> LTX-2.5 as an optional engine (2.3 stays the default)</span></td><td class="lic">LTX-2 Community License, Gemma Terms</td></tr>
+        <tr><td>Orbit + audio</td><td><span style="color:#c4b5fd"><b style="color:#a78bfa">Default:</b> LTX-2.5 22B distilled (int8), Gemma 4 12B text encoder, x2 latent upscaler</span><br>Also available: <a href="https://huggingface.co/Lightricks/LTX-2.3">LTX-2.3</a> 22B dev fp8, distilled LoRA 0.6, x2 spatial upscaler, Gemma 3 text encoder</td><td class="lic">LTX-2 Community License, Gemma Terms</td></tr>
         <tr><td>Moment + splice</td><td>OpenCV + ffmpeg, no model</td><td class="lic">local, free</td></tr>
       </table>
     </div>
@@ -473,7 +473,7 @@ footer a{color:var(--mut)}
 </footer>
 
 <script>
-// Drag-to-orbit over 32 frames of the real LTX-2.3 orbit (sprite, one full turn, wraps around)
+// Drag-to-orbit over 32 frames of the real LTX orbit (sprite, one full turn, wraps around)
 (function(){
   var N=32, frame=document.getElementById('frame'), name=document.getElementById('vname'), range=document.getElementById('deg'), cur=0;
   function show(i){
