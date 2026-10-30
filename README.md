@@ -11,7 +11,8 @@ to exactly your real frame, and your real take continues with its real sound.
 
 A Higgsfield-style effect, rebuilt as an open app for the Comfy *Open Source Higgsfield* challenge
 (#OpenSourceHiggsfield). **Open weights end to end**: Qwen-Image-Edit 2511 (Multiple-Angles LoRA) makes the
-views, **LTX-2.3** is the core video model that moves the camera through frozen time. No partner or
+views, **LTX-2.5** (22B distilled) is the core video model that moves the camera through frozen time, with
+LTX-2.3 one switch away. No partner or
 closed API nodes. MIT licensed. A sibling of [one-shot-multicam](https://github.com/apsolut/one-shot-multicam).
 
 ```
@@ -33,11 +34,12 @@ real audio .... | pitched down | generated whoosh (LTX audio)     | reversed    
    angle. (Free text like "Rotate the camera 45 degrees" comes back rolled 90° on vertical frames; the trained
    format doesn't.) Each still is checked: wrong orientation or a face lying sideways is rejected and that
    keyframe is skipped.
-3. **The orbit (1 LTX-2.3 job, ~$0.055).** Your **real frame** is placed in the latent at its frame index and
+3. **The orbit (1 LTX-2.5 job, ~$0.067).** Your **real frame** is placed in the latent at its frame index and
    each view becomes an `LTXVAddGuide` keyframe (frames 0, 24, 48… so the camera passes through every view).
-   LTX-2.3 animates the camera between them while the prompt holds time still ("suspended mid-motion like a
-   statue… only the camera moves"). It generates the whoosh in the same pass. Two stages: 352x640, then a x2
-   latent upscale with the same keyframes at full resolution.
+   LTX-2.5 animates the camera between them while the prompt holds time still ("suspended mid-motion like a
+   statue… only the camera moves"). It generates the whoosh in the same pass, 704x1280 straight out of the
+   distilled model. `--engine ltx23` (or the Engine dropdown) runs the LTX-2.3 graph instead: two stages,
+   352x640 then a x2 latent upscale with the same keyframes at full resolution (~$0.055).
 4. **Splice (free, ffmpeg).** A 0.4 s slow-mo ramp into the freeze (audio slowed and pitched down), the orbit,
    the rewind home at 2x or 2.5x, then your take from the very frame it froze on. The take is never retimed
    outside the ramp, so speech before and after stays in sync with its own audio. Every arc starts and ends on
@@ -96,7 +98,7 @@ app, **ComfyUI workflows** downloads the exact graphs submitted for your result.
 | File | What it does | Models |
 |---|---|---|
 | `orbit_stills_api.json` | 8 views of the frozen frame in one job | [Qwen-Image-Edit-2511](https://huggingface.co/Qwen/Qwen-Image-Edit-2511) + [fal Multiple-Angles LoRA](https://huggingface.co/fal/Qwen-Image-Edit-2511-Multiple-Angles-LoRA) + Lightning 4-step (Apache-2.0) |
-| `bullettime_orbit-right_api.json`, `bullettime_sweep_api.json` | Keyframed camera move through frozen time, with audio | [LTX-2.3](https://huggingface.co/Lightricks/LTX-2.3) 22B dev fp8 + distilled LoRA 0.6 + x2 spatial upscaler, Gemma 3 text encoder (LTX-2 Community License, Gemma Terms) |
+| `bullettime_orbit-right_api.json`, `bullettime_sweep_api.json` | Keyframed camera move through frozen time, with audio | **Default:** [LTX-2.5](https://huggingface.co/Lightricks/LTX-2.5) 22B distilled (int8), Gemma 4 12B text encoder, x2 latent upscaler. **`--engine ltx23`:** [LTX-2.3](https://huggingface.co/Lightricks/LTX-2.3) 22B dev fp8 + distilled LoRA 0.6 + x2 spatial upscaler, Gemma 3 text encoder (both LTX-2 Community License, Gemma Terms) |
 
 ## Tests
 
@@ -112,7 +114,8 @@ Everything a team needs to run this as a service rather than a toy, all open wei
 |---|---|---|
 | **Quality views** | the template's 40-step / cfg 4 path instead of the Lightning 4-step LoRA (`--quality`) | ~$0.25 |
 | **Fix one view** | a rejected view (wrong orientation, sideways, closed eyes) is re-rolled on its own with a new seed, then one distance wider, in a pruned single-branch graph. Automatic before every orbit (`--no-fix-views` to skip) | ~$0.025 per view |
-| **Variants** | `--variants 3`: three orbits with different seeds submitted at once, pick the best in the web app or with `bullettime select SEED` | 3 x $0.055 |
+| **Engine** | `--engine ltx25` (default) or `--engine ltx23`, also the **Engine** dropdown in the web app: the same keyframes drive either LTX-2.5 (newer, one stage) or LTX-2.3 (two stages, identity LoRA available) | ~$0.067 / ~$0.055 |
+| **Variants** | `--variants 3`: three orbits with different seeds submitted at once, pick the best in the web app or with `bullettime select SEED` | 3 x $0.067 |
 | **Colour match** | `--color-match 0.5`: every orbit frame is matched (KJNodes ColorMatch, mkl) to the real frame inside the graph, so the generated grade can't drift from the take it is cut into | free |
 | **Upscale** | `--upscale` / **Upscale orbit**: [SeedVR2](https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler) 3B (Apache-2.0) takes the 704x1280 orbit to a 1080 short side with its audio; the splice then uses the upscaled clip | ~$0.12 |
 | **Studio export** | `bullettime export` / **Studio export**: ProRes 422 HQ master, the H.264 delivery, the freeze loop, the raw orbit clip(s), the frozen frame, every view, `timeline.json` (segment in/out points and speeds for an NLE), the cost ledger and the exact ComfyUI graphs that ran | free |

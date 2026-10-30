@@ -3,7 +3,7 @@
     new_project(video)   copy + probe + pick the freeze moment                        free
     stills(t)            frozen frame -> 8 views around the person (1 Qwen job)       ~$0.045 (quality: ~$0.25)
     retry_views()        re-roll only the rejected views with new seeds               ~$0.025 per view
-    orbit(arc)           keyframes -> LTX-2.3 camera move through frozen time (1 job)  ~$0.055
+    orbit(arc)           keyframes -> LTX-2.5 camera move through frozen time (1 job)  ~$0.067 (ltx23: ~$0.055)
     variants(arc, n)     n orbits with different seeds at once, pick the best          n x orbit
     upscale()            SeedVR2 upscales the chosen orbit to 1080p+ (1 job)          ~$0.12
     render()             ramp + orbit + rewind spliced into the real take (ffmpeg)    free
@@ -214,7 +214,7 @@ def usable_views(p: Project) -> set[str]:
 def orbit(p: Project, arc: str = arcs.DEFAULT_ARC, key=None, seed: int | None = None, subject: str = "",
           sound: str = "whoosh", log: Log = _noop, on_status: Callable[[dict], None] | None = None,
           guide: float = workflows.GUIDE_STRENGTH, color_match: float = 0.0, select: bool = True,
-          id_lora: float = 0.0, engine: str = "ltx23") -> dict:
+          id_lora: float = 0.0, engine: str = workflows.DEFAULT_ENGINE) -> dict:
     """One LTX orbit job. select=False only records it under state["orbits"] (see variants())."""
     if arc not in arcs.ARCS:
         raise ValueError(f"unknown arc {arc!r} (one of {', '.join(arcs.ARCS)})")

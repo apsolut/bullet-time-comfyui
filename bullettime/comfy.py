@@ -27,7 +27,8 @@ IMAGE_EXT = (".png", ".jpg", ".jpeg", ".webp")
 # Measured on Comfy Cloud, Oct 2026 (balance delta / jobs). stills = 8 Qwen views (Lightning 4 steps);
 # stills_quality = the same at 40 steps cfg 4 (estimate); view = one re-rolled view (model load dominates: $0.025 measured);
 # upscale = SeedVR2 3B on a 193-frame orbit.
-JOB_COST_USD = {"stills": 0.045, "stills_quality": 0.25, "view": 0.025, "orbit": 0.055, "upscale": 0.12}
+JOB_COST_USD = {"stills": 0.045, "stills_quality": 0.25, "view": 0.025, "orbit": 0.067, "orbit_ltx25": 0.067,
+                "orbit_ltx23": 0.055, "upscale": 0.12}
 COST_PER_JOB_USD = max(JOB_COST_USD.values())  # conservative figure for budget guards
 
 # Studio guard rails: at most this many Comfy jobs in flight per process (BULLETTIME_PARALLEL_JOBS), and transient

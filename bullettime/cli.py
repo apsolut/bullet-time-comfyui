@@ -81,7 +81,7 @@ def main(argv=None) -> None:
                        help="match the orbit's colours to the real frame (0 = off)")
         o.add_argument("--variants", type=int, default=1, metavar="N", help="N orbits with different seeds at once")
         o.add_argument("--id-lora", type=float, default=0.0, metavar="0..1", help="LTX-2.3 identity LoRA strength (0 = off)")
-        o.add_argument("--engine", choices=list(workflows.ENGINES), default="ltx23", help="ltx23 (default) or ltx25")
+        o.add_argument("--engine", choices=list(workflows.ENGINES), default=workflows.DEFAULT_ENGINE, help="ltx25 (default) or ltx23")
         o.add_argument("--quality", action="store_true", help="40-step views instead of Lightning 4-step (~5x view cost)")
         o.add_argument("--no-fix-views", action="store_true", help="don't re-roll rejected views before the orbit")
         o.add_argument("--upscale", action="store_true", help="SeedVR2 upscale of the orbit before the splice")

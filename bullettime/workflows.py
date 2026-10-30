@@ -3,7 +3,7 @@
 1. Orbit stills: the Comfy Cloud "Qwen 1 Click Multiple Character Angles" template (Qwen-Image-Edit-2511 +
    fal Multiple-Angles LoRA) with its 8 branch prompts exposed (workflows/orbit_stills_api.json). One job
    turns the frozen frame into 8 views around the person.
-2. Orbit: LTX-2.3 22B (distilled LoRA), two stages, built here. The real frozen frame is put in place at
+2. Orbit: LTX-2.5 22B distilled (default, one stage) or LTX-2.3 22B (distilled LoRA, two stages), built here. The real frozen frame is put in place at
    frame 0, every other view is an LTXVAddGuide keyframe at its frame index, and LTX animates the camera
    between them while the prompt keeps time frozen. Audio is generated in the same pass (the whoosh).
 
@@ -30,8 +30,10 @@ LTX25 = {"unet": "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetenso
          "vae": "ltx-2.5-video-vae-bf16.safetensors", "audio_vae": "ltx-2.5-audio-vae-bf16.safetensors",
          "clip": "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
          "upscaler": "ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors"}
-ENGINES = ("ltx23", "ltx25")
-ENGINE_LABELS = {"ltx23": "LTX-2.3 (default)", "ltx25": "LTX-2.5"}
+# first entry is the default (the web dropdown pre-selects it): LTX-2.5 since 2026-10-30, 2.3 stays one switch away
+ENGINES = ("ltx25", "ltx23")
+DEFAULT_ENGINE = ENGINES[0]
+ENGINE_LABELS = {"ltx25": "LTX-2.5 (default)", "ltx23": "LTX-2.3"}
 SIG8 = "1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875, 0.0"
 SIG3 = "0.909375, 0.725, 0.421875, 0.0"
 NEGATIVE = ("people moving, walking, talking, lips moving, blinking, gesturing, hands moving, head turning, "
@@ -60,7 +62,7 @@ def orbit_prompt(arc: str, subject: str = "", sound: str = "whoosh") -> str:
 
 def build_orbit(arc: str, width: int = 704, height: int = 1280, dist_strength: float = 0.6,
                 guide_strength: float = GUIDE_STRENGTH, keys: list[str] | None = None,
-                color_match: float = 0.0, id_lora: float = 0.0, engine: str = "ltx23") -> tuple[dict, dict]:
+                color_match: float = 0.0, id_lora: float = 0.0, engine: str = DEFAULT_ENGINE) -> tuple[dict, dict]:
     """-> (API workflow, bindings). keys: the arc's views that have a usable still (default: all of them).
     The real frame is LoadImage "real.png"; view v is LoadImage "kf_<v>.png".
     color_match > 0: every decoded frame is colour-matched (KJNodes ColorMatch, mkl) to the real frame at that
