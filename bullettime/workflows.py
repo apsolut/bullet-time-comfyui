@@ -31,6 +31,7 @@ LTX25 = {"unet": "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetenso
          "clip": "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
          "upscaler": "ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors"}
 ENGINES = ("ltx23", "ltx25")
+ENGINE_LABELS = {"ltx23": "LTX-2.3 (default)", "ltx25": "LTX-2.5"}
 SIG8 = "1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875, 0.0"
 SIG3 = "0.909375, 0.725, 0.421875, 0.0"
 NEGATIVE = ("people moving, walking, talking, lips moving, blinking, gesturing, hands moving, head turning, "

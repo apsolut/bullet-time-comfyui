@@ -146,7 +146,8 @@ def create_app(data_dir: str | Path):
         return {"version": VERSION, **H.config(H.client_ip(request), request.cookies.get(COOKIE)),
                 "server_key": bool(comfy.env_key()) and not H.public and not H.any_free,
                 "password": bool(password), "costs_usd": comfy.JOB_COST_USD, "max_upload_s": MAX_UPLOAD_S,
-                "max_upload_mb": MAX_UPLOAD_MB, "ttl_minutes": H.ttl_minutes, "arcs": list(arcs.ARCS)}
+                "max_upload_mb": MAX_UPLOAD_MB, "ttl_minutes": H.ttl_minutes, "arcs": list(arcs.ARCS),
+                "engines": list(workflows.ENGINES), "engine_labels": workflows.ENGINE_LABELS}
 
     @app.get("/api/projects")
     def list_projects(limit: int = 50):
@@ -292,6 +293,7 @@ def create_app(data_dir: str | Path):
         guide: float = workflows.GUIDE_STRENGTH
         fix_views: bool = True         # re-roll rejected views before the orbit
         upscale: bool = False          # SeedVR2 pass on the chosen orbit
+        engine: str = "ltx23"          # orbit model: ltx23 (default) or ltx25
 
     @app.post("/api/projects/{pid}/generate")
     def generate(pid: str, body: Generate, request: Request, x_comfy_key: str | None = Header(None),
@@ -299,6 +301,8 @@ def create_app(data_dir: str | Path):
         p = load(pid)
         if body.arc not in arcs.ARCS or body.sound not in ("whoosh", "silent"):
             raise HTTPException(400, "unknown arc or sound")
+        if body.engine not in workflows.ENGINES:
+            raise HTTPException(400, f"unknown engine (one of {', '.join(workflows.ENGINES)})")
         n = max(1, min(body.variants, 6))
         est = pipeline.estimate(p, need_stills=True if body.new_stills else None, quality=body.quality,
                                 n_variants=n, upscale=body.upscale)
@@ -329,10 +333,10 @@ def create_app(data_dir: str | Path):
             set_job(p, step="orbit")
             if n > 1:
                 pipeline.variants(p, body.arc, n, key=key, seed=body.seed, subject=subject, sound=body.sound,
-                                  on_status=vstatus, guide=guide, color_match=cm)
+                                  on_status=vstatus, guide=guide, color_match=cm, engine=body.engine)
             else:
                 pipeline.orbit(p, body.arc, key=key, seed=body.seed, subject=subject, sound=body.sound,
-                               on_status=status("orbit"), guide=guide, color_match=cm)
+                               on_status=status("orbit"), guide=guide, color_match=cm, engine=body.engine)
             if body.upscale:
                 set_job(p, step="upscale")
                 pipeline.upscale(p, key=key, on_status=status("upscale"))

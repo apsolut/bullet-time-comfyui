@@ -178,6 +178,20 @@ def test_server_flow(take, tmp_path, monkeypatch):
     assert c.get(f"/api/projects/{pid}/files/../../etc/passwd").status_code == 404
     assert "k" not in (tmp_path / "projects" / pid / "state.json").read_text().split('"')  # key never stored
     assert c.post(f"/api/projects/{pid}/generate", json={"arc": "orbit-left"}).json()["jobs"] == ["orbit"]
+    # the engine dropdown: LTX-2.5 is an explicit choice, unknown names are rejected before any charge
+    assert c.get("/api/config").json()["engines"] == ["ltx23", "ltx25"]
+    assert c.post(f"/api/projects/{pid}/generate", json={"arc": "orbit-left", "confirm": True, "engine": "ltx9"},
+                  headers={"X-Comfy-Key": "k"}).status_code == 400
+    r = c.post(f"/api/projects/{pid}/generate", json={"arc": "orbit-left", "confirm": True, "engine": "ltx25"},
+               headers={"X-Comfy-Key": "k"})
+    assert r.status_code == 200, r.text
+    for _ in range(120):
+        s = c.get(f"/api/projects/{pid}").json()
+        if s["job"]["status"] != "running":
+            break
+        time.sleep(0.5)
+    assert s["job"]["status"] == "done", s["job"]
+    assert s["orbit"]["engine"] == "ltx25"
 
 
 @pytest.fixture(autouse=True)
