@@ -271,13 +271,26 @@ function showPick() {
 
 function opts() {
   return {quality: $("quality").checked, variants: +$("variants").value, color_match: +$("cm").value, guide: +$("guide").value,
-          fix_views: $("fixViews").checked, upscale: $("upscaleOpt").checked};
+          fix_views: $("fixViews").checked, upscale: $("upscaleOpt").checked, ...(CFG.engines ? {engine: $("engine").value} : {})};
 }
+// engine switch (LTX-2.3 default, LTX-2.5), only when the server offers it
+const ENGINE_COST = {ltx23: 0.055, ltx25: 0.067};
+function renderEngines() {
+  const list = CFG.engines || [], labels = CFG.engine_labels || {}, sel = $("engine"), keep = sel.value;
+  $("engineRow").classList.toggle("hidden", list.length < 2);
+  sel.innerHTML = list.map((e) => `<option value="${esc(e)}">${esc(labels[e] || e)}</option>`).join("");
+  if (list.includes(keep)) sel.value = keep;
+  engineHint();
+}
+function engineHint() {
+  $("engineHint").textContent = $("engine").value === "ltx25" ? "newer model, slightly different look" : "video model for the orbit";
+}
+$("engine").addEventListener("input", () => { engineHint(); updateEstimate(); });
 function updateEstimate() {
   if (!P) return;
   const o = opts(), c = HEALTH.costs_usd || {};
   const needStills = P.estimate.jobs.some((j) => j.startsWith("stills"));
-  let usd = (needStills ? (o.quality ? c.stills_quality || 0.25 : c.stills || 0.045) : 0) + o.variants * (c.orbit || 0.055) + (o.upscale ? c.upscale || 0.12 : 0);
+  let usd = (needStills ? (o.quality ? c.stills_quality || 0.25 : c.stills || 0.045) : 0) + o.variants * ((o.engine && c["orbit_" + o.engine]) || ENGINE_COST[o.engine] || c.orbit || 0.055) + (o.upscale ? c.upscale || 0.12 : 0);
   const n = (needStills ? 1 : 0) + o.variants + (o.upscale ? 1 : 0);
   $("estimate").textContent = `≈ $${usd.toFixed(2)} · ${n} job${n > 1 ? "s" : ""}`;
   $("estimate").title = P.spent_usd ? `spent so far on this take: $${P.spent_usd.toFixed(2)}` : "";
@@ -516,7 +529,7 @@ function showResult() {
   showShare(shareLink());
   histAdd();
   const o = P.orbit;
-  $("orbitInfo").textContent = `${ARCS[o.arc].label} · keyframes: ${o.keys.join(", ")}` + (o.dropped.length ? ` · skipped bad views: ${o.dropped.join(", ")}` : "") + ` · seed ${o.seed}` + (o.path_up ? " · upscaled" : "") + (P.spent_usd ? ` · spent $${P.spent_usd.toFixed(2)}` : "");
+  $("orbitInfo").textContent = `${ARCS[o.arc].label} · keyframes: ${o.keys.join(", ")}` + (o.dropped.length ? ` · skipped bad views: ${o.dropped.join(", ")}` : "") + ` · seed ${o.seed}` + (o.engine ? ` · ${((CFG.engine_labels || {})[o.engine] || o.engine).replace(" (default)", "")}` : "") + (o.path_up ? " · upscaled" : "") + (P.spent_usd ? ` · spent $${P.spent_usd.toFixed(2)}` : "");
   $("upscaleBtnT").innerHTML = o.path_up ? "Upscaled ✓ · run again<small>SeedVR2 on the current orbit</small>" : "Upscale orbit<small>SeedVR2, sharper frozen time</small>";
   const anyBad = Object.values((P.stills || {}).views || {}).some((s) => !s.ok);
   $("fixViewsBtn").classList.toggle("hidden", !anyBad);
@@ -559,6 +572,7 @@ for (const b of $("stageTabs").children) b.onclick = () => stageView(b.dataset.v
 async function loadConfig() {
   try { CFG = await api("GET", "/api/config"); } catch { CFG = {}; }
   renderAccess();
+  renderEngines();
 }
 async function boot() {
   await loadHealth();
