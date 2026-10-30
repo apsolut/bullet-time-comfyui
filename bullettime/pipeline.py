@@ -80,6 +80,9 @@ def freeze_frame(p: Project, t: float) -> Path:
     return out
 
 
+EYE_VIEWS = {"fr", "fl", "up"}  # views where both eyes face the camera
+
+
 def check_view(view: str, still: Path, real: Path) -> tuple[bool, str]:
     """Reject a still that came back in the wrong orientation, or with an upright source face lying sideways."""
     try:
@@ -89,6 +92,10 @@ def check_view(view: str, still: Path, real: Path) -> tuple[bool, str]:
         return False, f"unreadable ({e})"
     if view in arcs.FACE_VIEWS and orient.face_roll(real) == 0 and orient.face_roll(still) in (90, 270):
         return False, "subject rotated 90 degrees"
+    if view in EYE_VIEWS:  # Qwen can still close the eyes; a closed-eyes keyframe pulls the orbit's face with it
+        b = eyes.blink_image(still)
+        if b is not None and b > 0.6:  # looser than the take: a generated squint (~0.5) still reads as open
+            return False, f"eyes closed (blink {b:.2f})"
     return True, "ok"
 
 
