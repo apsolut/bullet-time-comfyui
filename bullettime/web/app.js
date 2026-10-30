@@ -11,7 +11,7 @@ let HEALTH = {}, CFG = {};
 // Who pays for the next paid action (same scheme as one-shot-multicam): an explicit pick wins; otherwise a saved
 // key, then a saved promo code, then a free run. The server gets exactly that choice in X-Pay-Mode.
 const judge = () => (CFG.judge_code ? ls("bt_judge") : "");
-let judgeLeft = null;
+let judgeLeft = null, judgeTotal = null;
 const trialOk = () => !!(CFG.trial && (CFG.trial.runs_left > 0 || CFG.trial.used_by_you));
 const freeAvail = () => trialOk() || !!(CFG.hosted && (CFG.hosted_jobs_left == null || CFG.hosted_jobs_left > 0));
 function payMode() {
@@ -106,7 +106,7 @@ $("judgeCheck").onclick = async () => {
     const r = await fetch("/api/key/check", {method: "POST", headers: {"X-Judge-Code": v, ...(pw() ? {"X-App-Password": pw()} : {})}});
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.detail || "That code isn't valid");
-    judgeLeft = j.judge_jobs_left;
+    judgeLeft = j.judge_jobs_left; judgeTotal = j.judge_jobs_total;
     if (!(judgeLeft > 0)) { ls("bt_judge", ""); throw new Error(j.judge_jobs_total > 0 ? "This code is used up" : "This code has expired"); }
     ls("bt_judge", v); ls("bt_pay", "judge");
     keyNote(`<b>Promo code accepted.</b> ${judgeLeft} of ${j.judge_jobs_total} jobs left on it. No Comfy key needed.`, "ok", true);
@@ -149,14 +149,14 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("payS
 function payLabel() {
   const m = payMode(), t = CFG.trial;
   if (m === "free") return t ? (t.used_by_you ? "Free run · in use" : `Free run · ${t.runs_left} left`) : "Demo credits";
-  if (m === "judge") return judge() ? (judgeLeft != null ? `Promo code · ${judgeLeft} left` : "Promo code") : "Add a promo code";
+  if (m === "judge") return judge() ? (judgeLeft != null ? `Promo code · ${judgeLeft}${judgeTotal ? " of " + judgeTotal : ""} jobs left` : "Promo code") : "Add a promo code";
   if (m === "key") return key() ? "Your Comfy key" : "Add a key";
   return "Server key";
 }
 function renderAccess() {
   const m = payMode(), t = CFG.trial;
   const lbl = payLabel();
-  $("payPillT").textContent = lbl;
+  $("payPillT").textContent = lbl.replace("Promo code · ", "Promo · ").replace(/ of \d+ jobs left$/, " left");
   $("payPill").classList.toggle("out", !canPay());
   $("payBoxT").innerHTML = canPay() ? `Paying with <b>${lbl}</b>` : `<b>${lbl}</b> to generate`;
   const hasFree = !!(t || CFG.hosted);
@@ -311,7 +311,7 @@ function drawCurve() {
   line(a.sharpness, "#333333");
   line(a.score, "#a3a3a3");
   const v = $("take");
-  g.fillStyle = "#f0fe68"; g.fillRect(xs(P.t) - 2, 0, 4, H);
+  g.fillStyle = "#24dfa5"; g.fillRect(xs(P.t) - 2, 0, 4, H);
   if (!isNaN(v.currentTime)) { g.fillStyle = "#ffffff66"; g.fillRect(xs(v.currentTime) - 1, 0, 2, H); }
 }
 $("curve").onclick = (e) => {
@@ -415,7 +415,7 @@ function watch() {
   OPEN.delete("step2");
   $("runCard").classList.remove("hidden");
   $("runErr").textContent = "";
-  $("runBadge").textContent = "running"; $("runBadge").className = "badge";
+  $("runBadge").textContent = "running"; $("runBadge").className = "badge run";
   clearInterval(poll);
   const tick = async () => {
     P = await api("GET", `/api/projects/${P.id}`);
@@ -573,6 +573,22 @@ async function loadConfig() {
   try { CFG = await api("GET", "/api/config"); } catch { CFG = {}; }
   renderAccess();
   renderEngines();
+  refreshPromo();
+}
+// keep the promo balance current (on load and after every job); checking a code costs nothing
+async function refreshPromo() {
+  const v = judge();
+  if (!v || !CFG.judge_code) return;
+  if (!$("judge").value) $("judge").value = v;
+  try {
+    const r = await fetch("/api/key/check", {method: "POST", headers: {"X-Judge-Code": v, ...(pw() ? {"X-App-Password": pw()} : {})}});
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || j.judge_jobs_left == null) return;
+    judgeLeft = j.judge_jobs_left; judgeTotal = j.judge_jobs_total;
+    renderAccess();
+    if (payMode() === "judge" && !$("paySheet").classList.contains("hidden")) return;
+    if (payMode() === "judge") keyNote(judgeLeft > 0 ? `<b>Promo code active.</b> ${judgeLeft} of ${judgeTotal} jobs left on it.` : "This promo code is used up. Pick a free run or your own Comfy key.", judgeLeft > 0 ? "ok" : "warn", judgeLeft > 0);
+  } catch {}
 }
 async function boot() {
   await loadHealth();

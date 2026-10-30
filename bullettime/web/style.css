@@ -7,7 +7,7 @@
   color-scheme:dark;
   --bg:#000;--bg2:#0a0a0a;--panel:#111;--panel2:#171717;--raise:#262626;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.14);--line3:rgba(255,255,255,.26);
   --text:#fafafa;--muted:#a3a3a3;--dim:#7d7d7d;
-  --acc:#f0fe68;--acc-ink:#0a0a0a;--acc-soft:rgba(240,254,104,.10);--acc-line:rgba(240,254,104,.6);
+  --acc:#24dfa5;--acc-ink:#0a0a0a;--acc-soft:rgba(36,223,165,.10);--acc-line:rgba(36,223,165,.6);
   --cta:#fafafa;--cta-ink:#0a0a0a;
   --warn:#f5c26b;--bad:#ff8a8a;
   --r:12px;--ease:cubic-bezier(.2,.7,.2,1);
@@ -80,6 +80,10 @@ h2{font-size:17px;margin:0;letter-spacing:-.01em}
 h3{font-size:15px;margin:0 0 10px}
 h3 small,h2 small{color:var(--dim);font-weight:500;margin-left:6px;font-size:12.5px}
 .badge{font-size:12px;padding:4px 10px;border-radius:99px;background:var(--panel2);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+/* "running": accent badge that breathes while a render works */
+.badge.run{display:inline-flex;align-items:center;gap:7px;color:var(--acc);border-color:var(--acc-line);background:var(--acc-soft);animation:breathe 1.8s ease-in-out infinite}
+.badge.run:before{content:"";width:6px;height:6px;border-radius:50%;background:var(--acc);animation:pulse 1.4s infinite}
+@keyframes breathe{0%,100%{opacity:1;background:rgba(36,223,165,.16)}50%{opacity:.55;background:rgba(36,223,165,.04)}}
 .badge.ok{color:var(--acc);border-color:var(--acc-line);background:var(--acc-soft)}
 .badge.warn{color:var(--warn);border-color:rgba(245,194,107,.35)}
 .muted{color:var(--dim);font-size:13px}
@@ -149,7 +153,7 @@ button.primary:disabled{opacity:1;background:var(--panel2);color:var(--muted);bo
 /* upload */
 .drop{display:block;border:1.5px dashed var(--line3);border-radius:16px;padding:26px 22px;cursor:pointer;transition:.15s var(--ease);background:var(--panel2)}
 .drop.empty{padding:34px 22px}
-.drop.over{border-color:var(--acc);border-style:solid;background:#15160d}
+.drop.over{border-color:var(--acc);border-style:solid;background:#0b1a15}
 @media (hover:hover){.drop:hover{border-color:rgba(255,255,255,.45);background:#1c1c1c}}
 .drop-in{display:flex;gap:16px;align-items:center}
 .drop-in small{color:var(--muted)}
@@ -223,7 +227,7 @@ canvas#curve{width:100%;height:64px;display:block;cursor:crosshair}
 .psteps li.run{background:rgba(255,255,255,.06);border-color:var(--line2)}
 .psteps li.run .dot{background:var(--acc);animation:pulse 1.4s infinite}
 .psteps li.done .dot{background:var(--acc)}
-@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(240,254,104,.5)}70%{box-shadow:0 0 0 7px rgba(240,254,104,0)}100%{box-shadow:0 0 0 0 rgba(240,254,104,0)}}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(36,223,165,.5)}70%{box-shadow:0 0 0 7px rgba(36,223,165,0)}100%{box-shadow:0 0 0 0 rgba(36,223,165,0)}}
 .runmsg{margin:12px 0 0;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
 .runmsg:empty{display:none}
 
@@ -313,7 +317,7 @@ body.sheet-open{overflow:hidden}
   font:700 11px/1 Inter,sans-serif;background:var(--raise);color:var(--muted)}
 .key-msg a{color:var(--text)}
 .key-msg b{color:var(--text);font-weight:650}
-.key-msg[data-tone=ok]{color:#e8f5b0;background:linear-gradient(180deg,rgba(240,254,104,.10),rgba(240,254,104,.04));border-color:rgba(240,254,104,.35)}
+.key-msg[data-tone=ok]{color:#c9f7e7;background:linear-gradient(180deg,rgba(36,223,165,.10),rgba(36,223,165,.04));border-color:rgba(36,223,165,.35)}
 .key-msg[data-tone=ok] b{color:var(--acc)}
 .key-msg[data-tone=ok]:before{content:"✓";background:var(--acc);color:var(--acc-ink)}
 .key-msg[data-tone=warn]{color:#f8dfae;background:rgba(245,194,107,.07);border-color:rgba(245,194,107,.32)}

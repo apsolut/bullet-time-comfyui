@@ -12,7 +12,7 @@
 <meta property="og:description" content="Freeze any moment of your take and fly the camera around it. Then the take carries on. Open weights, ComfyUI, about $0.10 per shot.">
 <meta property="og:image" content="https://apsolut.github.io/bullet-time-comfyui/media/views.jpg">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='none' stroke='%2300e0a4' stroke-width='3' stroke-dasharray='6 4'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%2300e0a4'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='none' stroke='%2324dfa5' stroke-width='3' stroke-dasharray='6 4'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%2324dfa5'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -20,7 +20,7 @@
 :root{
   color-scheme:dark;
   --bg:#0b0d10;--bg2:#0f1317;--card:#14181d;--line:#232a32;--line2:#2f3842;
-  --fg:#e8edf2;--mut:#8a96a3;--acc:#00e0a4;--acc2:#7cf0ff;--hot:#ff4fb8;
+  --fg:#e8edf2;--mut:#8a96a3;--acc:#24dfa5;--acc2:#7cf0ff;--hot:#ff4fb8;
   --r:16px;--mono:"JetBrains Mono",ui-monospace,Consolas,monospace
 }
 *{box-sizing:border-box}
@@ -44,11 +44,11 @@ nav .gh{color:var(--fg)!important;border:1px solid var(--line2);border-radius:99
 
 /* hero */
 .hero{position:relative;padding:64px 0 72px}
-.hero:before{content:"";position:absolute;inset:-120px 0 auto 0;height:620px;background:radial-gradient(600px 320px at 78% 30%,rgba(0,224,164,.16),transparent 70%),radial-gradient(520px 300px at 15% 10%,rgba(255,79,184,.10),transparent 70%);pointer-events:none}
+.hero:before{content:"";position:absolute;inset:-120px 0 auto 0;height:620px;background:radial-gradient(600px 320px at 78% 30%,rgba(36,223,165,.16),transparent 70%),radial-gradient(520px 300px at 15% 10%,rgba(255,79,184,.10),transparent 70%);pointer-events:none}
 .hero .wrap{position:relative;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:48px;align-items:center}
 .tag{display:inline-flex;flex-wrap:wrap;gap:8px}
 .chip{font:600 11.5px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mut);border:1px solid var(--line2);border-radius:99px;padding:7px 11px;text-decoration:none}
-.chip.on{color:var(--acc);border-color:rgba(0,224,164,.45)}
+.chip.on{color:var(--acc);border-color:rgba(36,223,165,.45)}
 h1{font-size:clamp(40px,6.4vw,76px);line-height:1;margin:22px 0 20px;font-weight:800;letter-spacing:-.035em}
 h1 em{font-style:normal;background:linear-gradient(92deg,var(--acc) 10%,var(--acc2) 90%);-webkit-background-clip:text;background-clip:text;color:transparent}
 .lede{font-size:clamp(17px,2vw,20px);color:var(--mut);max-width:560px;margin:0}
@@ -61,7 +61,7 @@ h1 em{font-style:normal;background:linear-gradient(92deg,var(--acc) 10%,var(--ac
 .facts div{font-size:13px;color:var(--mut)}
 .facts b{display:block;font-size:22px;color:var(--fg);letter-spacing:-.02em}
 .phone{position:relative;justify-self:center;width:100%;max-width:340px}
-.phone video{width:100%;aspect-ratio:9/16;object-fit:cover;border-radius:28px;border:1px solid var(--line2);background:#000;box-shadow:0 30px 80px -20px rgba(0,224,164,.25),0 0 0 8px #12161b}
+.phone video{width:100%;aspect-ratio:9/16;object-fit:cover;border-radius:28px;border:1px solid var(--line2);background:#000;box-shadow:0 30px 80px -20px rgba(36,223,165,.25),0 0 0 8px #12161b}
 .phone .lbl{position:absolute;left:50%;bottom:-38px;transform:translateX(-50%);white-space:nowrap;font:12px var(--mono);color:var(--mut)}
 @media (max-width:860px){.hero .wrap{grid-template-columns:minmax(0,1fr);gap:56px}.phone{max-width:300px}.hero{padding-top:40px}}
 
@@ -78,7 +78,7 @@ h2{font-size:clamp(28px,3.6vw,42px);line-height:1.1;margin:10px 0 14px;letter-sp
 .tl small{font-weight:400;opacity:.75}
 .tl .real{flex:2.2;background:#1b2128;color:var(--fg)}
 .tl .ramp{flex:.9;background:linear-gradient(90deg,#1b2128,#0d4a3c);color:var(--fg)}
-.tl .orbit{flex:3;background:linear-gradient(90deg,#00c993,var(--acc) 50%,#00c993);color:#04120d}
+.tl .orbit{flex:3;background:linear-gradient(90deg,#1fc794,var(--acc) 50%,#1fc794);color:#04120d}
 .tl .orbit small{opacity:.85}
 .tl .rew{flex:1;background:linear-gradient(90deg,#0d4a3c,#1b2128);color:var(--fg)}
 .tl span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -119,7 +119,7 @@ input[type=range]{width:100%;accent-color:var(--acc)}
 /* film placeholder */
 .film{position:relative;aspect-ratio:16/9;border-radius:20px;overflow:hidden;border:1px solid var(--line2);background:#07090b}
 .film video,.film iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
-.ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px;background:radial-gradient(closest-side,rgba(0,224,164,.10),transparent),repeating-linear-gradient(90deg,transparent 0 79px,rgba(255,255,255,.025) 79px 80px)}
+.ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px;background:radial-gradient(closest-side,rgba(36,223,165,.10),transparent),repeating-linear-gradient(90deg,transparent 0 79px,rgba(255,255,255,.025) 79px 80px)}
 .ph .play{width:76px;height:76px;border-radius:50%;border:1.5px solid var(--acc);display:grid;place-items:center}
 .ph b{font-size:20px}
 .ph span{color:var(--mut);font-size:15px;max-width:420px}
@@ -167,7 +167,7 @@ td.lic{color:var(--mut);font-size:14px}
 .box li{margin-bottom:8px}
 @media (max-width:760px){.two{grid-template-columns:minmax(0,1fr)}}
 
-.contest{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:24px;padding:32px;border-radius:24px;border:1px solid rgba(0,224,164,.35);background:linear-gradient(120deg,rgba(0,224,164,.10),rgba(124,240,255,.04) 60%,transparent)}
+.contest{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:24px;padding:32px;border-radius:24px;border:1px solid rgba(36,223,165,.35);background:linear-gradient(120deg,rgba(36,223,165,.10),rgba(124,240,255,.04) 60%,transparent)}
 .contest h2{margin:6px 0 6px;font-size:clamp(24px,3vw,32px)}
 .contest p{margin:0;color:var(--mut);max-width:600px}
 
@@ -182,7 +182,7 @@ footer a{color:var(--mut)}
 <nav>
   <div class="wrap">
     <a class="brand" href="#top">
-      <svg width="24" height="24" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="none" stroke="#00e0a4" stroke-width="2.5" stroke-dasharray="5 3.5"/><circle cx="16" cy="16" r="4.5" fill="#00e0a4"/></svg>
+      <svg width="24" height="24" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="none" stroke="#24dfa5" stroke-width="2.5" stroke-dasharray="5 3.5"/><circle cx="16" cy="16" r="4.5" fill="#24dfa5"/></svg>
       Bullet Time
     </a>
     <div class="links">
@@ -274,27 +274,27 @@ footer a{color:var(--mut)}
     <p class="sub">Seen from above: you are the dot, the phone was at the bottom. Every move starts and ends on the real frame.</p>
     <div class="arcs">
       <div class="arc">
-        <svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="42" fill="none" stroke="#2f3842" stroke-dasharray="3 4"/><path d="M60 102 A42 42 0 1 0 50 101" fill="none" stroke="#00e0a4" stroke-width="4" stroke-linecap="round"/><path d="M44 95 L50 101 L44 107" fill="none" stroke="#00e0a4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="60" cy="60" r="7" fill="#e8edf2"/><rect x="54" y="98" width="12" height="9" rx="2" fill="#7cf0ff"/></svg>
+        <svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="42" fill="none" stroke="#2f3842" stroke-dasharray="3 4"/><path d="M60 102 A42 42 0 1 0 50 101" fill="none" stroke="#24dfa5" stroke-width="4" stroke-linecap="round"/><path d="M44 95 L50 101 L44 107" fill="none" stroke="#24dfa5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="60" cy="60" r="7" fill="#e8edf2"/><rect x="54" y="98" width="12" height="9" rx="2" fill="#7cf0ff"/></svg>
         <b>Full orbit</b><code>orbit-360</code><p>real → all the way around → real</p><span class="t">6.4 s freeze</span>
       </div>
       <div class="arc">
-        <svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="42" fill="none" stroke="#2f3842" stroke-dasharray="3 4"/><path d="M60 102 A42 42 0 0 0 102 60" fill="none" stroke="#00e0a4" stroke-width="4" stroke-linecap="round"/><path d="M96 66 L102 56 L108 66" fill="none" stroke="#00e0a4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="60" cy="60" r="7" fill="#e8edf2"/><rect x="54" y="98" width="12" height="9" rx="2" fill="#7cf0ff"/></svg>
+        <svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="42" fill="none" stroke="#2f3842" stroke-dasharray="3 4"/><path d="M60 102 A42 42 0 0 0 102 60" fill="none" stroke="#24dfa5" stroke-width="4" stroke-linecap="round"/><path d="M96 66 L102 56 L108 66" fill="none" stroke="#24dfa5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="60" cy="60" r="7" fill="#e8edf2"/><rect x="54" y="98" width="12" height="9" rx="2" fill="#7cf0ff"/></svg>
         <b>Orbit right</b><code>orbit-right</code><p>real → front quarter → side, 90°</p><span class="t">4.0 s freeze</span>
       </div>
       <div class="arc">
-        <svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="42" fill="none" stroke="#2f3842" stroke-dasharray="3 4"/><path d="M60 102 A42 42 0 0 1 18 60" fill="none" stroke="#00e0a4" stroke-width="4" stroke-linecap="round"/><path d="M12 66 L18 56 L24 66" fill="none" stroke="#00e0a4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="60" cy="60" r="7" fill="#e8edf2"/><rect x="54" y="98" width="12" height="9" rx="2" fill="#7cf0ff"/></svg>
+        <svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="42" fill="none" stroke="#2f3842" stroke-dasharray="3 4"/><path d="M60 102 A42 42 0 0 1 18 60" fill="none" stroke="#24dfa5" stroke-width="4" stroke-linecap="round"/><path d="M12 66 L18 56 L24 66" fill="none" stroke="#24dfa5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="60" cy="60" r="7" fill="#e8edf2"/><rect x="54" y="98" width="12" height="9" rx="2" fill="#7cf0ff"/></svg>
         <b>Orbit left</b><code>orbit-left</code><p>real → front quarter → side, 90°</p><span class="t">4.0 s freeze</span>
       </div>
       <div class="arc">
-        <svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="42" fill="none" stroke="#2f3842" stroke-dasharray="3 4"/><path d="M18 60 A42 42 0 0 0 102 60" fill="none" stroke="#00e0a4" stroke-width="4" stroke-linecap="round"/><path d="M96 66 L102 56 L108 66" fill="none" stroke="#00e0a4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 66 L18 56 L24 66" fill="none" stroke="#00e0a4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="60" cy="60" r="7" fill="#e8edf2"/><rect x="54" y="98" width="12" height="9" rx="2" fill="#7cf0ff"/></svg>
+        <svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="42" fill="none" stroke="#2f3842" stroke-dasharray="3 4"/><path d="M18 60 A42 42 0 0 0 102 60" fill="none" stroke="#24dfa5" stroke-width="4" stroke-linecap="round"/><path d="M96 66 L102 56 L108 66" fill="none" stroke="#24dfa5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 66 L18 56 L24 66" fill="none" stroke="#24dfa5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="60" cy="60" r="7" fill="#e8edf2"/><rect x="54" y="98" width="12" height="9" rx="2" fill="#7cf0ff"/></svg>
         <b>Matrix sweep</b><code>sweep</code><p>real → right → left → real, 180°</p><span class="t">4.8 s freeze</span>
       </div>
       <div class="arc">
-        <svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="42" fill="none" stroke="#2f3842" stroke-dasharray="3 4"/><path d="M60 102 A42 42 0 0 0 60 18" fill="none" stroke="#00e0a4" stroke-width="4" stroke-linecap="round"/><path d="M66 12 L56 18 L66 24" fill="none" stroke="#00e0a4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="60" cy="60" r="7" fill="#e8edf2"/><rect x="54" y="98" width="12" height="9" rx="2" fill="#7cf0ff"/></svg>
+        <svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="42" fill="none" stroke="#2f3842" stroke-dasharray="3 4"/><path d="M60 102 A42 42 0 0 0 60 18" fill="none" stroke="#24dfa5" stroke-width="4" stroke-linecap="round"/><path d="M66 12 L56 18 L66 24" fill="none" stroke="#24dfa5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="60" cy="60" r="7" fill="#e8edf2"/><rect x="54" y="98" width="12" height="9" rx="2" fill="#7cf0ff"/></svg>
         <b>Half orbit behind</b><code>half-right</code><p>real → right → back-right → back</p><span class="t">5.6 s freeze</span>
       </div>
       <div class="arc">
-        <svg viewBox="0 0 120 120" aria-hidden="true"><line x1="14" y1="100" x2="106" y2="100" stroke="#2f3842" stroke-dasharray="3 4"/><path d="M98 92 A50 50 0 0 0 56 34" fill="none" stroke="#00e0a4" stroke-width="4" stroke-linecap="round"/><path d="M62 28 L52 34 L62 40" fill="none" stroke="#00e0a4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="40" cy="74" r="7" fill="#e8edf2"/><rect x="37" y="81" width="6" height="19" rx="3" fill="#e8edf2"/><rect x="94" y="86" width="12" height="9" rx="2" fill="#7cf0ff"/></svg>
+        <svg viewBox="0 0 120 120" aria-hidden="true"><line x1="14" y1="100" x2="106" y2="100" stroke="#2f3842" stroke-dasharray="3 4"/><path d="M98 92 A50 50 0 0 0 56 34" fill="none" stroke="#24dfa5" stroke-width="4" stroke-linecap="round"/><path d="M62 28 L52 34 L62 40" fill="none" stroke="#24dfa5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="40" cy="74" r="7" fill="#e8edf2"/><rect x="37" y="81" width="6" height="19" rx="3" fill="#e8edf2"/><rect x="94" y="86" width="12" height="9" rx="2" fill="#7cf0ff"/></svg>
         <b>Crane up</b><code>crane</code><p>real → high angle, seen from the side</p><span class="t">3.0 s freeze</span>
       </div>
     </div>
@@ -311,7 +311,7 @@ footer a{color:var(--mut)}
     <!-- To publish the demo: put the file at docs/media/full-demo.mp4 (and optionally docs/media/full-demo.jpg as the poster), or set data-youtube to a YouTube video id. -->
     <div class="film" id="film" data-youtube="">
       <div class="ph">
-        <div class="play"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="#00e0a4"/></svg></div>
+        <div class="play"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="#24dfa5"/></svg></div>
         <b>Demo video coming soon</b>
         <span>Until then, the take on the left is a real output of the app.</span>
       </div>
