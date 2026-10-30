@@ -6,7 +6,7 @@ services:
     environment:
       COMFY_API_KEY: ${COMFY_API_KEY}            # server-side key: the team never pastes one
       BULLETTIME_PASSWORD: ${BULLETTIME_PASSWORD:-}  # shared app password (empty = open on the LAN)
-      BULLETTIME_MAX_JOBS: "3"                   # Comfy jobs in flight at once
+      BULLETTIME_PARALLEL_JOBS: "3"                   # Comfy jobs in flight at once
     volumes:
       - bullettime-data:/data
     restart: unless-stopped

@@ -117,7 +117,7 @@ Everything a team needs to run this as a service rather than a toy, all open wei
 | **Upscale** | `--upscale` / **Upscale orbit**: [SeedVR2](https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler) 3B (Apache-2.0) takes the 704x1280 orbit to a 1080 short side with its audio; the splice then uses the upscaled clip | ~$0.12 |
 | **Studio export** | `bullettime export` / **Studio export**: ProRes 422 HQ master, the H.264 delivery, the freeze loop, the raw orbit clip(s), the frozen frame, every view, `timeline.json` (segment in/out points and speeds for an NLE), the cost ledger and the exact ComfyUI graphs that ran | free |
 | **Ledger** | every paid job is booked with the Comfy Cloud balance before and after it (`bullettime status`, the web app, `ledger.json`) | |
-| **Guard rails** | at most `BULLETTIME_MAX_JOBS` jobs in flight per server (default 3); transient Comfy Cloud errors (network, 5xx, 429) retry with backoff instead of failing a paid pipeline; the eye check reports why when it can't run | |
+| **Guard rails** | at most `BULLETTIME_PARALLEL_JOBS` jobs in flight per server (default 3); transient Comfy Cloud errors (network, 5xx, 429) retry with backoff instead of failing a paid pipeline; the eye check reports why when it can't run | |
 
 ### Deploying for a team
 
@@ -141,13 +141,32 @@ fly deploy
 |---|---|
 | `COMFY_API_KEY` | server-side key: nobody on the team has to paste one (a key pasted in the browser still wins) |
 | `BULLETTIME_PASSWORD` | shared app password; every `/api` call must carry it (`X-App-Password`), the web app asks once |
-| `BULLETTIME_MAX_JOBS` | Comfy jobs in flight at once (default 3) |
+| `BULLETTIME_PARALLEL_JOBS` | Comfy jobs in flight at once (default 3) |
 | `BULLETTIME_DATA` | data folder: projects, workflow archive (default `~/.bullettime`) |
 | `BULLETTIME_MAX_UPLOAD_MB`, `BULLETTIME_MAX_UPLOAD_S` | upload limits (default 200 MB, 30 s) |
 
 `GET /api/health` reports version, ffmpeg, the eye check, whether a server key is set and the per-job costs.
 `GET /api/projects` lists projects (the web app shows them as "Recent"); `DELETE /api/projects/{id}` removes
 one. The full API is at `/api/docs`.
+
+### Public site: free runs, promo codes, bring your own key
+
+The hosted demo (https://bulletcam.apsolut.dev) works exactly like [one-shot-multicam](https://github.com/apsolut/one-shot-multicam)'s:
+every paid request says who pays (`X-Pay-Mode`: `key`, `promo` or `trial`) and the server reserves the jobs
+first, refunding whatever never reached Comfy Cloud.
+
+| Mode | | Env |
+|---|---|---|
+| **My Comfy key** | the visitor's own key (`X-Comfy-Key`), kept in their browser, never stored or logged | always on |
+| **Promo code** | `X-Judge-Code` spends the operator's key, capped per code; codes are compared in constant time and only their hashes land on disk; remove one from the env to revoke it | `BULLETTIME_JUDGE_CODE` (limit `BULLETTIME_JUDGE_MAX_JOBS`), more in `BULLETTIME_PROMO_CODES="CODE:LIMIT,CODE:LIMIT"` |
+| **Free run** | one per visitor (salted IP hash **and** a first-party cookie) on the operator's key, up to `BULLETTIME_TRIAL_JOBS_PER_RUN` jobs on one project; raise `BULLETTIME_HOSTED_RUNS` to top up the pool (the used count stays in `<data>/hosted_jobs.json`) | `BULLETTIME_HOSTED_RUNS`, `BULLETTIME_TRIAL_JOBS_PER_RUN` |
+| **Open demo** | anyone without a key uses the operator key, capped globally and per IP per day | `BULLETTIME_HOSTED_ACCESS=open`, `BULLETTIME_MAX_JOBS`, `BULLETTIME_IP_JOBS_PER_DAY` |
+
+`BULLETTIME_HOSTED_FLOOR_USD` is the hard stop for all of them: the operator's real balance is asked from
+Comfy Cloud before each reservation, so it survives restarts and a lost volume. `BULLETTIME_PUBLIC=1` adds
+the public-site guards (no project listing, `BULLETTIME_IP_PROJECTS_PER_HOUR`, `BULLETTIME_TTL_MINUTES`);
+`BULLETTIME_PROXY_HOPS=1` behind Fly's proxy. A studio server uses `BULLETTIME_PASSWORD` instead and none of
+this. `GET /api/config` tells the web app which choices to offer.
 
 ### Roadmap (not in this release)
 

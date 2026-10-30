@@ -3,15 +3,34 @@ const $ = (id) => document.getElementById(id);
 const VIEW_NAMES = {fr: "front-right", r: "right", br: "back-right", b: "back", fl: "front-left", l: "left", bl: "back-left", up: "high"};
 let P = null, ARCS = {}, arc = "orbit-right", poll = null;
 
-function key() { try { return localStorage.getItem("bt_key") || ""; } catch { return ""; } }
-function setKey(v) { try { localStorage.setItem("bt_key", v); } catch {} }
-function pw() { try { return localStorage.getItem("bt_pw") || ""; } catch { return ""; } }
-let HEALTH = {};
+function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k) || ""; v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch {} return ""; }
+function key() { return ls("bt_key"); }
+function setKey(v) { ls("bt_key", v); }
+function pw() { return ls("bt_pw"); }
+let HEALTH = {}, CFG = {};
+// Who pays for the next paid action (same scheme as one-shot-multicam): an explicit pick wins; otherwise a saved
+// key, then a saved promo code, then a free run. The server gets exactly that choice in X-Pay-Mode.
+const judge = () => (CFG.judge_code ? ls("bt_judge") : "");
+let judgeLeft = null;
+const trialOk = () => !!(CFG.trial && (CFG.trial.runs_left > 0 || CFG.trial.used_by_you));
+const freeAvail = () => trialOk() || !!(CFG.hosted && (CFG.hosted_jobs_left == null || CFG.hosted_jobs_left > 0));
+function payMode() {
+  const m = ls("bt_pay");
+  if (m === "key" || (m === "judge" && CFG.judge_code) || (m === "free" && freeAvail())) return m;
+  if (key()) return "key";
+  if (judge()) return "judge";
+  if (freeAvail()) return "free";
+  return HEALTH.server_key ? "server" : "key";
+}
+const canPay = () => { const m = payMode(); return m === "key" ? !!key() : m === "judge" ? !!judge() : m === "free" ? freeAvail() : true; };
 function file(path) { return `/api/projects/${P.id}/files/${path}?v=${P.render ? P.render.rendered : 0}`; }
 
 async function api(method, url, body, isForm) {
   const h = {};
-  if (key()) h["X-Comfy-Key"] = key();
+  const m = payMode();
+  if (m === "key" && key()) { h["X-Comfy-Key"] = key(); h["X-Pay-Mode"] = "key"; }
+  else if (m === "judge" && judge()) { h["X-Judge-Code"] = judge(); h["X-Pay-Mode"] = "promo"; }
+  else if (m === "free") h["X-Pay-Mode"] = "trial";
   if (pw()) h["X-App-Password"] = pw();
   if (body && !isForm) h["Content-Type"] = "application/json";
   const r = await fetch(url, {method, headers: h, body: isForm ? body : body ? JSON.stringify(body) : undefined});
@@ -63,17 +82,49 @@ async function open(pid) {
   } catch (e) { $("upErr").textContent = e.message; }
 }
 
-// 1 key
+// 1 who pays
 $("key").value = key();
-$("key").addEventListener("change", (e) => setKey(e.target.value.trim()));
+$("judge").value = judge();
+$("key").addEventListener("change", (e) => { setKey(e.target.value.trim()); if (key()) ls("bt_pay", "key"); renderAccess(); });
 $("keyCheck").onclick = async () => {
-  setKey($("key").value.trim());
+  setKey($("key").value.trim()); ls("bt_pay", "key");
   $("keyMsg").textContent = "Checking…";
   try {
-    const j = await api("POST", "/api/key/check");
+    const r = await fetch("/api/key/check", {method: "POST", headers: {"X-Comfy-Key": key(), "X-Pay-Mode": "key", ...(pw() ? {"X-App-Password": pw()} : {})}});
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.detail || `HTTP ${r.status}`);
     $("keyMsg").textContent = "Key works." + (j.balance_usd != null ? ` Balance: $${j.balance_usd.toFixed(2)}` : "");
   } catch (e) { $("keyMsg").textContent = e.message; }
+  renderAccess();
 };
+$("judgeCheck").onclick = async () => {
+  const v = $("judge").value.trim();
+  $("keyMsg").textContent = "Checking the code…";
+  try {
+    const r = await fetch("/api/key/check", {method: "POST", headers: {"X-Judge-Code": v, ...(pw() ? {"X-App-Password": pw()} : {})}});
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.detail || "That code isn't valid");
+    judgeLeft = j.judge_jobs_left;
+    if (!(judgeLeft > 0)) { ls("bt_judge", ""); throw new Error(j.judge_jobs_total > 0 ? "This code is used up" : "This code has expired"); }
+    ls("bt_judge", v); ls("bt_pay", "judge");
+    $("keyMsg").textContent = `Promo code accepted: ${judgeLeft} of ${j.judge_jobs_total} jobs left on it. No Comfy key needed.`;
+  } catch (e) { $("keyMsg").textContent = e.message; }
+  renderAccess();
+};
+for (const b of document.querySelectorAll("#access button")) b.onclick = () => { ls("bt_pay", b.dataset.a); renderAccess(); };
+function renderAccess() {
+  const m = payMode(), t = CFG.trial;
+  const hasFree = !!(t || CFG.hosted);
+  $("accFreeBtn").classList.toggle("hidden", !hasFree);
+  $("accJudgeBtn").classList.toggle("hidden", !CFG.judge_code);
+  $("accFreeN").textContent = t ? (t.used_by_you ? "in use" : `${t.runs_left} of ${t.runs_total} left`) : CFG.hosted ? `${CFG.hosted_jobs_left ?? "∞"} jobs left` : "";
+  for (const b of document.querySelectorAll("#access button")) b.classList.toggle("on", b.dataset.a === m);
+  $("accKey").classList.toggle("hidden", m === "judge" || m === "free");
+  $("accJudge").classList.toggle("hidden", m !== "judge");
+  if (m === "free") $("keyMsg").textContent = t ? (t.used_by_you ? "Using your free run on our credits (one per visitor)." : `A free run on our credits: ${t.runs_left} of ${t.runs_total} left, one per visitor, up to ${t.jobs_per_run} Comfy jobs. Or bring your own key.`) : `Demo credits: ${CFG.hosted_jobs_left ?? "∞"} jobs left.`;
+  if (m === "server") $("keyMsg").textContent = "This server pays with its own Comfy Cloud key.";
+  updateEstimate();
+}
 
 // 2 upload
 const drop = $("drop");
@@ -169,11 +220,16 @@ function drawArcs() {
 
 // 4 generate
 async function generate(extra = {}) {
-  if (!key() && !HEALTH.server_key) { $("keyMsg").textContent = "Paste your Comfy Cloud key first."; $("key").focus(); return; }
+  if (!canPay()) {
+    const m = payMode();
+    $("keyMsg").textContent = m === "judge" ? "Enter your promo code and press Use code first." : m === "free" ? "The free runs are used up. Paste your own Comfy Cloud key, or a promo code." : "Paste your Comfy Cloud key first.";
+    $("keyCard").scrollIntoView({behavior: "smooth"}); (m === "judge" ? $("judge") : $("key")).focus(); return;
+  }
   const body = {arc, subject: $("subject").value, sound: $("whoosh").checked ? "whoosh" : "silent", ...opts(), ...extra};
   try {
     const est = await api("POST", `/api/projects/${P.id}/generate`, body);
-    if (!confirm(`${est.jobs.join(" + ")} on Comfy Cloud ≈ $${est.usd.toFixed(2)} of your credits. Go?`)) return;
+    const who = payMode() === "key" ? "of your credits" : payMode() === "judge" ? "on your promo code" : payMode() === "free" ? "of your free run" : "on this server's credits";
+    if (!confirm(`${est.jobs.join(" + ")} on Comfy Cloud ≈ $${est.usd.toFixed(2)} ${who}. Go?`)) return;
     P = await api("POST", `/api/projects/${P.id}/generate`, {...body, confirm: true});
     watch();
   } catch (e) { $("runCard").classList.remove("hidden"); $("runErr").textContent = e.message; }
@@ -219,8 +275,8 @@ function watch() {
     });
     const secs = j.started ? Math.round(Date.now() / 1000 - j.started) : 0;
     $("runMsg").textContent = j.status === "running" ? `${j.step}${j.comfy ? " · " + j.comfy : ""} · ${secs} s` : "";
-    if (j.status === "error") { $("runErr").textContent = j.error; clearInterval(poll); }
-    if (j.status === "done") { clearInterval(poll); showResult(); showPick(); loadRecent(); }
+    if (j.status === "error") { $("runErr").textContent = j.error; clearInterval(poll); loadConfig(); }
+    if (j.status === "done") { clearInterval(poll); showResult(); showPick(); loadRecent(); loadConfig(); }
   };
   tick();
   poll = setInterval(tick, 2500);
@@ -265,8 +321,13 @@ function showResult() {
 }
 
 // boot
+async function loadConfig() {
+  try { CFG = await api("GET", "/api/config"); } catch { CFG = {}; }
+  renderAccess();
+}
 async function boot() {
   await loadHealth();
+  await loadConfig();
   try { ARCS = await api("GET", "/api/arcs"); } catch (e) { $("health").textContent = e.message; return; }
   loadRecent();
   const pid = location.hash.slice(1);

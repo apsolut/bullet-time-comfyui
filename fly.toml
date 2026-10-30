@@ -5,9 +5,22 @@ primary_region = "fra"
 [build]
   dockerfile = "Dockerfile"
 
+# Secrets (set separately, never committed): fly secrets set COMFY_API_KEY=... BULLETTIME_JUDGE_CODE=...
+#   more promo codes: BULLETTIME_PROMO_CODES="CODE:LIMIT,CODE:LIMIT" (per-code counters, hashed, in
+#   /data/hosted_jobs.json; remove a code from the secret to revoke it).
+# The public site has NO BULLETTIME_PASSWORD: visitors bring their own key, use a promo code, or take a free run.
 [env]
   BULLETTIME_DATA = "/data"
-  BULLETTIME_MAX_JOBS = "3"
+  BULLETTIME_PARALLEL_JOBS = "3"
+  BULLETTIME_PUBLIC = "1"              # no project listing, upload rate limit, TTL below
+  BULLETTIME_HOSTED_ACCESS = "judge"   # the operator key only via promo codes and free runs; everyone else BYO key
+  BULLETTIME_JUDGE_MAX_JOBS = "20"     # jobs the judge code may spend (one bullet time = 2 to 4 jobs)
+  BULLETTIME_HOSTED_RUNS = "6"         # free runs on the operator key, 1 per visitor (used count: /data/hosted_jobs.json)
+  BULLETTIME_TRIAL_JOBS_PER_RUN = "4"  # stills + orbit + a view re-roll or an upscale
+  BULLETTIME_IP_PROJECTS_PER_HOUR = "6"
+  BULLETTIME_HOSTED_FLOOR_USD = "20"   # hard stop for free runs and promo codes: refuse below this balance
+  BULLETTIME_PROXY_HOPS = "1"          # Fly's edge proxy appends the client IP to X-Forwarded-For
+  BULLETTIME_TTL_MINUTES = "1440"      # visitors' projects are deleted after a day
   PORT = "8790"
 
 [http_service]

@@ -59,6 +59,11 @@ details.pro summary{cursor:pointer;color:var(--dim);font-size:13px;text-transfor
 .variant video{aspect-ratio:9/16;max-height:none;border-radius:6px}
 .variant.on{border-color:var(--acc)}
 .warn{color:#ffcf6b}
+.access{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.access button{border-radius:99px}
+.access button.on{border-color:var(--acc);color:var(--acc)}
+.access button small{color:var(--dim);margin-left:4px}
+.access button.hidden{display:none}
 </style>
 </head>
 <body>
@@ -67,12 +72,21 @@ details.pro summary{cursor:pointer;color:var(--dim);font-size:13px;text-transfor
   <p class="sub">One phone shot. Freeze any moment and fly the camera around it, then the take carries on. Open weights on ComfyUI: Qwen-Image-Edit 2511 + LTX-2.3.</p>
 
   <section class="card" id="keyCard">
-    <h2>1 · Comfy Cloud key</h2>
-    <div class="row">
+    <h2>1 · Who pays for the AI camera</h2>
+    <div class="access" id="access">
+      <button type="button" data-a="free" id="accFreeBtn">Free run <small id="accFreeN"></small></button>
+      <button type="button" data-a="key">My Comfy key</button>
+      <button type="button" data-a="judge" id="accJudgeBtn">Promo code</button>
+    </div>
+    <div class="row" id="accKey">
       <input type="password" id="key" placeholder="Paste your Comfy Cloud API key" autocomplete="off">
       <button id="keyCheck">Check</button>
     </div>
-    <p class="muted" id="keyMsg">Stored only in this browser. Get one at <a href="https://platform.comfy.org/profile/api-keys" target="_blank" rel="noopener">platform.comfy.org</a>. About $0.10 per bullet time; picking the moment and re-rendering are free.</p>
+    <div class="row hidden" id="accJudge">
+      <input type="text" id="judge" placeholder="Enter promo code" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <button id="judgeCheck">Use code</button>
+    </div>
+    <p class="muted" id="keyMsg">Your key stays in this browser and is sent per request, never stored or logged. Get one at <a href="https://platform.comfy.org/profile/api-keys" target="_blank" rel="noopener">platform.comfy.org</a>. About $0.10 per bullet time; picking the moment and re-rendering are free.</p>
     <div class="row hidden" id="pwRow"><input type="password" id="pw" placeholder="App password (this server asks for one)" autocomplete="off"><button id="pwSave">Save</button></div>
     <p class="muted" id="health"></p>
   </section>

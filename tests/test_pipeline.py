@@ -152,8 +152,9 @@ def test_server_flow(take, tmp_path, monkeypatch):
     from fastapi.testclient import TestClient
     from bullettime.server import create_app
     monkeypatch.setattr(comfy, "run_workflow", fake_run_workflow)
-    monkeypatch.delenv("COMFY_API_KEY", raising=False)  # the 401 check below needs no key in the env
-    monkeypatch.delenv("COMFY_CLOUD_API_KEY", raising=False)
+    for v in ("COMFY_API_KEY", "COMFY_CLOUD_API_KEY", "BULLETTIME_PASSWORD", "BULLETTIME_HOSTED_RUNS",
+              "BULLETTIME_JUDGE_CODE", "BULLETTIME_PROMO_CODES", "BULLETTIME_PUBLIC"):
+        monkeypatch.delenv(v, raising=False)  # a plain bring-your-own-key server: the 403 check below needs no key
     c = TestClient(create_app(tmp_path))
     with open(take, "rb") as f:
         r = c.post("/api/projects", files={"file": ("take.mp4", f, "video/mp4")})
@@ -162,7 +163,8 @@ def test_server_flow(take, tmp_path, monkeypatch):
     assert c.patch(f"/api/projects/{pid}", json={"t": 2.0}).json()["t"] == 2.0
     est = c.post(f"/api/projects/{pid}/generate", json={"arc": "orbit-left"}).json()
     assert est["confirm_needed"] and est["jobs"] == ["stills", "orbit"]
-    assert c.post(f"/api/projects/{pid}/generate", json={"arc": "orbit-left", "confirm": True}).status_code == 401
+    assert c.post(f"/api/projects/{pid}/generate", json={"arc": "orbit-left", "confirm": True}).status_code == 403
+    assert c.get("/api/config").json()["byok_only"] is True
     r = c.post(f"/api/projects/{pid}/generate", json={"arc": "orbit-left", "confirm": True}, headers={"X-Comfy-Key": "k"})
     assert r.status_code == 200, r.text
     for _ in range(120):
@@ -252,3 +254,119 @@ def test_closed_eyes_are_never_frozen():
     assert eyes.nearest_open(blink, 11) == 15  # later first: the eyes reopen forwards
     assert eyes.nearest_open(blink, 3) == 3
     assert eyes.nearest_open(None, 11) == 11  # no detector: unchanged
+
+
+# ---------- hosted mode (free runs, promo codes, own key), ported from one-shot-multicam
+from bullettime.hosted import Hosted  # noqa: E402
+
+LEGACY, P1, P2, P3 = "judge-code-for-tests", "BT-AAAA-1111", "BT-BBBB-2222", "BT-CCCC-3333"
+
+
+def mk(tmp_path, **env):
+    base = {"COMFY_API_KEY": "op-key-not-real", "BULLETTIME_JUDGE_CODE": LEGACY,
+            "BULLETTIME_PROMO_CODES": f"{P1}:10, {P2}:3 ,{P3}", "BULLETTIME_HOSTED_RUNS": "6",
+            "BULLETTIME_TRIAL_JOBS_PER_RUN": "4", "BULLETTIME_JUDGE_MAX_JOBS": "7"}
+    base.update(env)
+    return Hosted(tmp_path / "d", env=base)
+
+
+def test_promo_codes_parse_match_and_count(tmp_path):
+    H = mk(tmp_path)
+    codes = H.promo_codes()
+    assert codes["judge"] == (LEGACY, 7) and codes[H.promo_id(P1)] == (P1, 10) and codes[H.promo_id(P3)] == (P3, 7)
+    assert H.resolve_key(None, LEGACY) == ("op-key-not-real", "promo:judge")
+    assert H.resolve_key(None, f"  {P1} ")[1] == "promo:" + H.promo_id(P1)
+    with pytest.raises(PermissionError):
+        H.resolve_key(None, "BT-ZZZZ-9999")
+    H.charge_hosted(2, "1.1.1.1", promo=H.promo_id(P1))
+    H.charge_hosted(1, "1.1.1.1", promo="judge")
+    assert H.promo_used(H.promo_id(P1)) == 2 and H.promo_used(H.promo_id(P2)) == 0 and H.promo_used("judge") == 1
+    H.refund_hosted(1, "1.1.1.1", promo=H.promo_id(P1))
+    assert H.promo_used(H.promo_id(P1)) == 1
+    raw = H.counter_file.read_text()
+    assert P1 not in raw and LEGACY not in raw and H.promo_id(P1) in raw  # only hashes on disk
+    H.charge_hosted(3, "2.2.2.2", promo=H.promo_id(P2))
+    with pytest.raises(PermissionError, match="used up"):
+        H.charge_hosted(1, "2.2.2.2", promo=H.promo_id(P2))
+    H2 = mk(tmp_path, BULLETTIME_PROMO_CODES=f"{P2}:3")  # P1 removed from the env = revoked
+    assert H2.promo_match(P1) is None and H2.promo_match(P2) and H2.promo_match(LEGACY) == "judge"
+    with pytest.raises(PermissionError):
+        H2.charge_hosted(1, "3.3.3.3", promo=H.promo_id(P1))
+
+
+def test_pay_mode_is_explicit_and_trial_is_one_per_visitor(tmp_path):
+    H = mk(tmp_path)
+    assert H.resolve_key("mine", LEGACY) == ("mine", "key")            # no mode: own key wins
+    assert H.resolve_key("mine", LEGACY, "promo")[1] == "promo:judge"   # explicit mode wins over the key
+    assert H.resolve_key("mine", None, "trial") == ("op-key-not-real", "trial")
+    with pytest.raises(PermissionError):
+        H.resolve_key(None, None, "key")  # chose own key, sent none: never falls back to the operator
+    assert H.resolve_key(None, None) == ("op-key-not-real", "trial")
+    H.charge("trial", 2, "9.9.9.9", "cookie-a", "proj1")
+    H.charge("trial", 2, "9.9.9.9", "cookie-a", "proj1")  # same project shares the run (4 jobs max)
+    with pytest.raises(PermissionError, match="free run covers"):
+        H.charge("trial", 1, "9.9.9.9", "cookie-a", "proj1")
+    with pytest.raises(PermissionError, match="used your free run"):
+        H.charge("trial", 1, "9.9.9.9", "cookie-b", "proj2")  # same IP, new cookie
+    with pytest.raises(PermissionError, match="used your free run"):
+        H.charge("trial", 1, "8.8.8.8", "cookie-a", "proj3")  # new IP, same cookie
+    st = H.trial_status("7.7.7.7", "cookie-c")
+    assert st == {"runs_total": 6, "runs_left": 5, "used_by_you": False, "jobs_per_run": 4}
+    H.refund("trial", 4, "9.9.9.9", "proj1")  # nothing was submitted: the run is released
+    assert H.trial_status("9.9.9.9", "cookie-a")["runs_left"] == 6
+    none = mk(tmp_path, COMFY_API_KEY="")
+    assert not none.any_free and none.config("1.1.1.1", None)["byok_only"]
+    with pytest.raises(PermissionError, match="key required"):
+        none.resolve_key(None, None)
+
+
+def test_server_hosted_flow(take, tmp_path, monkeypatch):
+    """Public site: a visitor without a key pays with a free run; a promo code pays on its own counter;
+    projects are never listed; reservations are refunded for jobs that never ran."""
+    from fastapi.testclient import TestClient
+    from bullettime.server import create_app
+    monkeypatch.setattr(comfy, "run_workflow", fake_run_workflow)
+    monkeypatch.setattr(comfy, "check_key", lambda key=None: {"ok": True})
+    for v, val in {"COMFY_API_KEY": "op-key", "BULLETTIME_PASSWORD": "", "BULLETTIME_PUBLIC": "1",
+                   "BULLETTIME_HOSTED_RUNS": "2", "BULLETTIME_TRIAL_JOBS_PER_RUN": "3",
+                   "BULLETTIME_JUDGE_CODE": "judge-code-for-tests", "BULLETTIME_PROMO_CODES": ""}.items():
+        monkeypatch.setenv(v, val) if val else monkeypatch.delenv(v, raising=False)
+    c = TestClient(create_app(tmp_path))
+    cfg = c.get("/api/config").json()
+    assert cfg["trial"]["runs_left"] == 2 and cfg["judge_code"] and not cfg["byok_only"] and cfg["public"]
+    assert c.post("/api/key/check").json()["trial"]["runs_left"] == 2
+    assert c.post("/api/key/check", headers={"X-Judge-Code": "judge-code-for-tests"}).json()["judge_jobs_left"] == 10
+    assert c.post("/api/key/check", headers={"X-Judge-Code": "nope-nope"}).status_code == 403
+    with open(take, "rb") as f:
+        pid = c.post("/api/projects", files={"file": ("take.mp4", f, "video/mp4")}).json()["id"]
+    assert c.get("/api/projects").json() == []  # public: no listing
+    # a free run: stills + orbit = 2 jobs (+1 reserved for a possible view re-roll, refunded when unused)
+    r = c.post(f"/api/projects/{pid}/generate", json={"arc": "orbit-left", "confirm": True}, headers={"X-Pay-Mode": "trial"})
+    assert r.status_code == 200, r.text
+    for _ in range(120):
+        s = c.get(f"/api/projects/{pid}").json()
+        if s["job"]["status"] != "running":
+            break
+        time.sleep(0.5)
+    assert s["job"]["status"] == "done", s["job"]
+    t = c.get("/api/config").json()["trial"]
+    assert t["runs_left"] == 1 and t["used_by_you"]
+    ledger = json.loads((tmp_path / "hosted_jobs.json").read_text())
+    assert list(ledger["trial"]["jobs"].values()) == [2]  # 3 reserved, 1 refunded
+    # the same visitor can't start a second free run on another project; a promo code can
+    with open(take, "rb") as f:
+        pid2 = c.post("/api/projects", files={"file": ("take.mp4", f, "video/mp4")}).json()["id"]
+    r = c.post(f"/api/projects/{pid2}/generate", json={"arc": "orbit-left", "confirm": True}, headers={"X-Pay-Mode": "trial"})
+    assert r.status_code == 403 and "free run" in r.json()["detail"]
+    r = c.post(f"/api/projects/{pid2}/generate", json={"arc": "orbit-left", "confirm": True},
+               headers={"X-Pay-Mode": "promo", "X-Judge-Code": "judge-code-for-tests"})
+    assert r.status_code == 200, r.text
+    for _ in range(120):
+        s = c.get(f"/api/projects/{pid2}").json()
+        if s["job"]["status"] != "running":
+            break
+        time.sleep(0.5)
+    assert s["job"]["status"] == "done"
+    assert c.post("/api/key/check", headers={"X-Judge-Code": "judge-code-for-tests"}).json()["judge_jobs_left"] == 8
+    # explicit "key" mode with no key never falls back to the operator's credits
+    assert c.post(f"/api/projects/{pid2}/generate", json={"arc": "sweep", "confirm": True}, headers={"X-Pay-Mode": "key"}).status_code == 403

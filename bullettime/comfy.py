@@ -30,9 +30,9 @@ IMAGE_EXT = (".png", ".jpg", ".jpeg", ".webp")
 JOB_COST_USD = {"stills": 0.045, "stills_quality": 0.25, "view": 0.025, "orbit": 0.055, "upscale": 0.12}
 COST_PER_JOB_USD = max(JOB_COST_USD.values())  # conservative figure for budget guards
 
-# Studio guard rails: at most this many Comfy jobs in flight per process (BULLETTIME_MAX_JOBS), and transient
+# Studio guard rails: at most this many Comfy jobs in flight per process (BULLETTIME_PARALLEL_JOBS), and transient
 # failures (network, 5xx, 429 rate limit) are retried with backoff instead of failing a paid pipeline.
-MAX_JOBS = max(1, int(os.environ.get("BULLETTIME_MAX_JOBS", "3")))
+MAX_JOBS = max(1, int(os.environ.get("BULLETTIME_PARALLEL_JOBS", "3")))
 RETRIES = 4
 _slots = threading.BoundedSemaphore(MAX_JOBS)
 
