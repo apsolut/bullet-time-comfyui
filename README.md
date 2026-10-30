@@ -38,7 +38,8 @@ real audio .... | pitched down | generated whoosh (LTX audio)     | reversed    
    each view becomes an `LTXVAddGuide` keyframe (frames 0, 24, 48… so the camera passes through every view).
    LTX-2.5 animates the camera between them while the prompt holds time still ("suspended mid-motion like a
    statue… only the camera moves"). It generates the whoosh in the same pass, 704x1280 straight out of the
-   distilled model. `--engine ltx23` (or the Engine dropdown) runs the LTX-2.3 graph instead: two stages,
+   distilled model. The whoosh is levelled against the take (a few dB under the voice, never boosted) and faded
+   at the cuts; `sound: silent` drops it. `--engine ltx23` (or the Engine dropdown) runs the LTX-2.3 graph instead: two stages,
    352x640 then a x2 latent upscale with the same keyframes at full resolution (~$0.055).
 4. **Splice (free, ffmpeg).** A 0.4 s slow-mo ramp into the freeze (audio slowed and pitched down), the orbit,
    the rewind home at 2x or 2.5x, then your take from the very frame it froze on. The take is never retimed

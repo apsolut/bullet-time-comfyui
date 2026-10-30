@@ -8,12 +8,31 @@ with its own audio. The orbit starts and ends on the frozen frame, so both cuts 
 """
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from . import arcs
 from .util import need, probe, run
 
 SR = 48000
+WHOOSH_DB = -3.0   # the orbit's generated audio sits this far under the take's average level (never a boost)
+CUT_FADE = 0.15    # s, fade on each orbit-audio segment so the cuts into and out of the whoosh don't click
+
+
+def mean_volume_db(path: str | Path) -> float | None:
+    """Average level of a file's audio in dBFS (ffmpeg volumedetect), None when it has no audio."""
+    r = run(["ffmpeg", "-i", str(path), "-vn", "-af", "volumedetect", "-f", "null", "-"])
+    m = re.search(r"mean_volume:\s*(-?[\d.]+) dB", r.stderr or "")
+    return float(m.group(1)) if m else None
+
+
+def whoosh_gain_db(take: str | Path, orbit: str | Path, whoosh_db: float = WHOOSH_DB) -> float:
+    """Gain for the orbit audio so its average lands whoosh_db under the take's voice: LTX writes the whoosh
+    near full scale while a phone take's voice averages around -35 dB, a 20+ dB jump at the freeze."""
+    t, o = mean_volume_db(take), mean_volume_db(orbit)
+    if t is None or o is None:
+        return -26.0  # ~5% volume, the level that worked for the promo cut
+    return max(-40.0, min(0.0, t - o + whoosh_db))
 
 
 def out_size(w: int, h: int, long_side: int = 1920) -> tuple[int, int]:
@@ -51,8 +70,9 @@ def plan(src_info: dict, t: float, arc: str, ramp_s: float = 0.4, ramp_slow: flo
 
 def render(take: str | Path, orbit: str | Path, t: float, arc: str, out: str | Path, ramp_s: float = 0.4,
            ramp_slow: float = 3.0, sound: str = "whoosh", fps: int = 30, long_side: int = 1920,
-           orbit_only: str | Path | None = None) -> dict:
-    """Render the final video. sound: "whoosh" (the orbit's generated audio) or "silent". -> render report."""
+           orbit_only: str | Path | None = None, whoosh_db: float = WHOOSH_DB) -> dict:
+    """Render the final video. sound: "whoosh" (the orbit's generated audio, levelled whoosh_db under the take's
+    voice) or "silent". -> render report."""
     need("ffmpeg")
     info = probe(take)
     oinfo = probe(orbit)
@@ -66,8 +86,9 @@ def render(take: str | Path, orbit: str | Path, t: float, arc: str, out: str | P
          f"[1:v]split={n_orb}" + "".join(f"[ov{i}]" for i in range(n_orb))]
     if take_audio:
         f.append(f"[0:a]aformat=sample_rates={SR}:channel_layouts=stereo,asplit={n_take}" + "".join(f"[ta{i}]" for i in range(n_take)))
+    gain_db = whoosh_gain_db(take, orbit, whoosh_db) if orbit_audio else None
     if orbit_audio:
-        f.append(f"[1:a]aformat=sample_rates={SR}:channel_layouts=stereo,asplit={n_orb}" + "".join(f"[oa{i}]" for i in range(n_orb)))
+        f.append(f"[1:a]aformat=sample_rates={SR}:channel_layouts=stereo,volume={gain_db:.2f}dB,asplit={n_orb}" + "".join(f"[oa{i}]" for i in range(n_orb)))
     vfit = (f"scale={W}:{H}:force_original_aspect_ratio=increase:flags=lanczos,crop={W}:{H},setsar=1,"
             f"fps={fps},format=yuv420p")
     ti = oi = 0
@@ -93,8 +114,12 @@ def render(take: str | Path, orbit: str | Path, t: float, arc: str, out: str | P
                 tempo = f"asetrate={int(SR * s['speed'])},aresample={SR}"
             else:
                 tempo = _atempo(s["speed"])
+            fade = ""
+            if s["src"] == "orbit":  # soften the cuts into and out of the generated whoosh
+                fd = min(CUT_FADE, length / 2)
+                fade = f",afade=t=in:st=0:d={fd:.3f},afade=t=out:st={max(0.0, length - fd):.4f}:d={fd:.3f}"
             f.append(f"{ain}atrim=start={s['start']:.4f}:end={s['end']:.4f},asetpts=PTS-STARTPTS{arev},{tempo},"
-                     f"apad,atrim=duration={length:.4f}[a{k}]")
+                     f"apad,atrim=duration={length:.4f}{fade}[a{k}]")
         else:
             f.append(f"anullsrc=r={SR}:cl=stereo,atrim=duration={length:.4f}[a{k}]")
         labels.append(f"[v{k}][a{k}]")
@@ -105,7 +130,7 @@ def render(take: str | Path, orbit: str | Path, t: float, arc: str, out: str | P
          "-map", "[vout]", "-map", "[aout]", "-c:v", "libx264", "-preset", "medium", "-crf", "18",
          "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", str(out)])
     report = {"out": str(out), "width": W, "height": H, "fps": fps, "duration": round(total, 3), "segments": segs,
-              "freeze_at": round(t, 3), "arc": arc}
+              "freeze_at": round(t, 3), "arc": arc, "sound": sound, "whoosh_gain_db": gain_db}
     if orbit_only:
         # the freeze on its own: ramp + orbit + rewind, for a loopable share clip
         lo = sum((s["end"] - s["start"]) / s["speed"] for s in segs[:1] if s["kind"] == "take")
