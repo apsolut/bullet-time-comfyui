@@ -95,19 +95,16 @@ h2{font-size:clamp(28px,3.6vw,42px);line-height:1.1;margin:10px 0 14px;letter-sp
 
 /* orbit scrubber */
 .scrub{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:40px;align-items:center}
-.frame{position:relative;aspect-ratio:240/426;border-radius:20px;border:1px solid var(--line2);background:url(media/views.jpg) 0 0/900% 100% no-repeat;cursor:ew-resize;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.frame{position:relative;aspect-ratio:9/16;border-radius:20px;border:1px solid var(--line2);background:#000 url(media/orbit.jpg) 0 0/3200% 100% no-repeat;cursor:ew-resize;touch-action:pan-y;user-select:none;-webkit-user-select:none}
 .frame .hint{position:absolute;left:12px;right:12px;bottom:12px;display:flex;justify-content:space-between;font:12px var(--mono);color:#fff;text-shadow:0 1px 6px #000}
 .frame .badge{position:absolute;top:12px;left:12px;font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;background:rgba(0,0,0,.55);color:var(--acc);border-radius:99px;padding:5px 10px}
-.dial{display:flex;gap:6px;margin:22px 0 10px}
-.dial button{flex:1;height:8px;border:0;border-radius:99px;background:var(--line2);cursor:pointer;padding:0}
-.dial button.on{background:var(--acc)}
 .dial-l{display:flex;justify-content:space-between;font:12px var(--mono);color:var(--mut)}
 .strip{margin-top:28px;border-radius:12px;border:1px solid var(--line);width:100%}
 input[type=range]{width:100%;accent-color:var(--acc)}
 @media (max-width:760px){.scrub{grid-template-columns:minmax(0,1fr)}.frame{max-width:280px;margin:0 auto;width:100%}}
 
 /* arcs */
-.arcs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}
+.arcs{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px}
 .arc{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px}
 .arc svg{width:100%;height:auto;margin-bottom:10px}
 .arc b{display:block;font-size:15px}
@@ -126,6 +123,9 @@ input[type=range]{width:100%;accent-color:var(--acc)}
 .ph span{color:var(--mut);font-size:15px;max-width:420px}
 .film.has .ph{display:none}
 
+.demo2{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:24px;align-items:center}
+.take video{width:100%;aspect-ratio:9/16;border-radius:20px;border:1px solid var(--line2);background:#000}
+@media (max-width:760px){.demo2{grid-template-columns:minmax(0,1fr)}.take{max-width:300px;margin:0 auto;width:100%}}
 /* app shot */
 .shot{border-radius:20px;border:1px solid var(--line2);overflow:hidden;box-shadow:0 40px 90px -40px rgba(0,0,0,.9)}
 .shot img{width:100%}
@@ -211,13 +211,13 @@ footer a{color:var(--mut)}
       <div class="facts">
         <div><b>1 clip</b>from your phone</div>
         <div><b>2 jobs</b>Qwen views + LTX orbit</div>
+        <div><b>360°</b>full orbit</div>
         <div><b>~$0.10</b>per bullet time</div>
-        <div><b>0 closed APIs</b>open weights only</div>
-      </div>
+              </div>
     </div>
     <div class="phone">
       <video src="media/demo.mp4" poster="media/poster.jpg" autoplay muted loop playsinline controls preload="metadata"></video>
-      <div class="lbl">real Comfy Cloud output · orbit-right</div>
+      <div class="lbl">real Comfy Cloud output · orbit-360</div>
     </div>
   </div>
 </header>
@@ -237,7 +237,7 @@ footer a{color:var(--mut)}
     </div>
 
     <div class="steps">
-      <div class="step"><h3>Pick the moment</h3><p>OpenCV scores every frame by motion x sharpness. The peak of the action is where frames blur, so the sharpest frame near a motion peak wins. Scrub to pick your own.</p><span class="cost">free · CPU</span></div>
+      <div class="step"><h3>Pick the moment</h3><p>OpenCV scores every frame by motion x sharpness, so the freeze lands on the peak without blur. MediaPipe rules out closed eyes: nobody wants to orbit a blink. Scrub to pick your own.</p><span class="cost">free · CPU</span></div>
       <div class="step"><h3>8 views</h3><p>Qwen-Image-Edit 2511 with the Multiple-Angles LoRA, prompted in its trained <code>&lt;sks&gt;</code> format. Each still is checked; a sideways or upside-down view is rejected.</p><span class="cost">1 job · ~$0.045</span></div>
       <div class="step"><h3>The orbit</h3><p>LTX-2.3 22B: your real frame sits in the latent, every view becomes an <code>LTXVAddGuide</code> keyframe, and the prompt holds time still. Two stages up to 704x1280, audio in the same pass.</p><span class="cost">1 job · ~$0.055</span></div>
       <div class="step"><h3>Splice</h3><p>ffmpeg ramps into the freeze, plays the orbit, rewinds home and resumes on the very frame it froze on.</p><span class="cost">free · ffmpeg</span></div>
@@ -248,28 +248,32 @@ footer a{color:var(--mut)}
 <section id="views">
   <div class="wrap scrub">
     <div>
-      <div class="frame" id="frame" role="slider" tabindex="0" aria-label="Camera angle around the frozen frame" aria-valuemin="0" aria-valuemax="8" aria-valuenow="0">
+      <div class="frame" id="frame" role="slider" tabindex="0" aria-label="Camera angle around the frozen frame" aria-valuemin="0" aria-valuemax="360" aria-valuenow="0">
         <span class="badge" id="vname">real frame</span>
         <div class="hint"><span>◂ drag</span><span>drag ▸</span></div>
       </div>
     </div>
     <div>
-      <div class="kicker">One frozen frame, eight cameras</div>
+      <div class="kicker">One frozen frame, a full turn</div>
       <h2>Drag to walk around the moment</h2>
-      <p class="sub" style="margin-bottom:0">These are the actual stills from a Comfy Cloud run on a 17 s selfie. Qwen sees one frame and invents the rest of the ring. LTX-2.3 then flies a continuous camera through them, which is the part you see in the video.</p>
-      <div class="dial" id="dial"></div>
-      <div class="dial-l"><span>real frame</span><span>around the ring</span><span>high angle</span></div>
+      <p class="sub" style="margin-bottom:0">These are 32 frames of a real <code>orbit-360</code> render from Comfy Cloud. Qwen saw one frame of a phone selfie and invented the rest of the ring; LTX-2.3 flew a continuous camera through those views while time stood still.</p>
+      <input type="range" id="deg" min="0" max="31" value="0" aria-label="Orbit position" style="margin-top:24px">
+      <div class="dial-l"><span>0° real frame</span><span>180° behind</span><span>360°</span></div>
     </div>
   </div>
-  <div class="wrap"><img class="strip" src="media/views.jpg" alt="The real frozen frame followed by 8 generated views: front-right, right side, back-right, back, front-left, left side, back-left and a high angle" loading="lazy"></div>
+  <div class="wrap"><img class="strip" src="media/views.jpg" alt="The real frozen frame followed by the 8 Qwen views used as keyframes; the third came back rotated" loading="lazy"><p style="color:var(--mut);font-size:14px;margin:10px 0 0">The keyframes behind it: the real frame, then the 8 Qwen views. The third came back rotated, so the orientation check rejected it and LTX simply skipped that keyframe.</p></div>
 </section>
 
 <section id="arcs">
   <div class="wrap">
     <div class="kicker">Camera arcs</div>
-    <h2>Five moves, one click each</h2>
+    <h2>Six moves, one click each</h2>
     <p class="sub">Seen from above: you are the dot, the phone was at the bottom. Every move starts and ends on the real frame.</p>
     <div class="arcs">
+      <div class="arc">
+        <svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="42" fill="none" stroke="#2f3842" stroke-dasharray="3 4"/><path d="M60 102 A42 42 0 1 0 50 101" fill="none" stroke="#00e0a4" stroke-width="4" stroke-linecap="round"/><path d="M44 95 L50 101 L44 107" fill="none" stroke="#00e0a4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="60" cy="60" r="7" fill="#e8edf2"/><rect x="54" y="98" width="12" height="9" rx="2" fill="#7cf0ff"/></svg>
+        <b>Full orbit</b><code>orbit-360</code><p>real → all the way around → real</p><span class="t">6.4 s freeze</span>
+      </div>
       <div class="arc">
         <svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="42" fill="none" stroke="#2f3842" stroke-dasharray="3 4"/><path d="M60 102 A42 42 0 0 0 102 60" fill="none" stroke="#00e0a4" stroke-width="4" stroke-linecap="round"/><path d="M96 66 L102 56 L108 66" fill="none" stroke="#00e0a4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="60" cy="60" r="7" fill="#e8edf2"/><rect x="54" y="98" width="12" height="9" rx="2" fill="#7cf0ff"/></svg>
         <b>Orbit right</b><code>orbit-right</code><p>real → front quarter → side, 90°</p><span class="t">4.0 s freeze</span>
@@ -298,14 +302,17 @@ footer a{color:var(--mut)}
   <div class="wrap">
     <div class="kicker">Demo</div>
     <h2>Watch it end to end</h2>
-    <p class="sub">From a phone clip to a finished bullet time, in the web app, on Comfy Cloud.</p>
+    <p class="sub">Left: a finished 24.8 s take, straight out of the app with its real sound. Turn the sound on. Right: the walkthrough, from phone clip to bullet time.</p>
+    <div class="demo2">
+      <div class="take"><video src="media/take.mp4" poster="media/take.jpg" controls playsinline preload="metadata"></video></div>
     <!-- To publish the demo: put the file at docs/media/full-demo.mp4 (and optionally docs/media/full-demo.jpg as the poster), or set data-youtube to a YouTube video id. -->
     <div class="film" id="film" data-youtube="">
       <div class="ph">
         <div class="play"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="#00e0a4"/></svg></div>
         <b>Demo video coming soon</b>
-        <span>Until then, the loop at the top of the page is a real output of the app.</span>
+        <span>Until then, the take on the left is a real output of the app.</span>
       </div>
+    </div>
     </div>
   </div>
 </section>
@@ -440,25 +447,24 @@ footer a{color:var(--mut)}
 </footer>
 
 <script>
-// Drag-to-orbit over the real Qwen stills (sprite of 9 tiles: real, then the 8 views)
+// Drag-to-orbit over 32 frames of the real LTX-2.3 orbit (sprite, one full turn, wraps around)
 (function(){
-  var TILES=9, ring=[];
-  for(var k=0;k<TILES;k++)ring.push([k,k?'generated view '+k+'/8':'real frame']);
-  var frame=document.getElementById('frame'), name=document.getElementById('vname'), dial=document.getElementById('dial'), cur=2;
-  ring.forEach(function(r,i){var b=document.createElement('button');b.setAttribute('aria-label',r[1]);b.onclick=function(){show(i)};dial.appendChild(b)});
+  var N=32, frame=document.getElementById('frame'), name=document.getElementById('vname'), range=document.getElementById('deg'), cur=0;
   function show(i){
-    cur=Math.max(0,Math.min(ring.length-1,i));
-    frame.style.backgroundPosition=(ring[cur][0]/(TILES-1)*100)+'% 0';
-    name.textContent=ring[cur][1];
-    frame.setAttribute('aria-valuenow',cur);
-    [].forEach.call(dial.children,function(b,j){b.className=j===cur?'on':''});
+    cur=((i%N)+N)%N;
+    frame.style.backgroundPosition=(cur/(N-1)*100)+'% 0';
+    var d=Math.round(cur/N*360);
+    name.textContent=cur?d+'\u00b0':'real frame';
+    frame.setAttribute('aria-valuenow',d);
+    range.value=cur;
   }
-  var down=false,x0=0,i0=0,step=28;
+  var down=false,x0=0,i0=0,step=12;
   frame.addEventListener('pointerdown',function(e){down=true;x0=e.clientX;i0=cur;frame.setPointerCapture(e.pointerId)});
   frame.addEventListener('pointermove',function(e){if(down)show(i0+Math.round((e.clientX-x0)/step))});
   frame.addEventListener('pointerup',function(){down=false});
   frame.addEventListener('pointercancel',function(){down=false});
   frame.addEventListener('keydown',function(e){if(e.key==='ArrowLeft'){show(cur-1);e.preventDefault()}if(e.key==='ArrowRight'){show(cur+1);e.preventDefault()}});
+  range.addEventListener('input',function(){show(+range.value)});
   show(0);
 })();
 
