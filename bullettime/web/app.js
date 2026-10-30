@@ -494,6 +494,48 @@ function renderStills(box) {
   }
 }
 
+// stage overlay: which part of the video is playing (real take / AI orbit through frozen time),
+// from the render's segment plan; the example uses its known cut (orbit from 2.2 s to the end)
+const EX_SEGS = [{k: "take", a: 0, b: 2.2}, {k: "orbit", a: 2.2, b: 7.62}];
+function stageSegs(v) {
+  if (v.id !== "result" || !(P && P.render && P.render.segments)) return EX_SEGS;
+  const out = []; let t = 0;
+  for (const s of P.render.segments) {
+    const k = s.src === "take" ? "take" : "orbit", len = (s.end - s.start) / s.speed;
+    if (out.length && out[out.length - 1].k === k) out[out.length - 1].b = t + len; else out.push({k, a: t, b: t + len});
+    t += len;
+  }
+  return out;
+}
+const stageVid = () => $("result").classList.contains("hidden") ? $("stageEx") : $("result");
+function drawSegs() {
+  const v = stageVid(), segs = stageSegs(v), T = segs[segs.length - 1].b, bar = $("segBar");
+  bar.querySelectorAll("b").forEach((b) => b.remove());
+  for (const s of segs) {
+    const b = document.createElement("b");
+    b.className = s.k; b.style.left = `${100 * s.a / T}%`; b.style.width = `${100 * (s.b - s.a) / T}%`;
+    bar.insertBefore(b, $("segHead"));
+  }
+  const ok = Object.values(((v.id === "result" && P && P.stills) || {}).views || {}).filter((s) => s.ok).length;
+  $("viewsN").textContent = v.id === "result" && ok ? ok : 8;
+  bar.dataset.T = T;
+}
+let segK = "";
+function tickSegs() {
+  const v = stageVid(), segs = stageSegs(v), T = segs[segs.length - 1].b, t = v.currentTime || 0;
+  const s = segs.find((x) => t >= x.a && t < x.b) || segs[segs.length - 1];
+  $("segHead").style.left = `${Math.min(100, 100 * t / T)}%`;
+  if (s.k !== segK) {
+    segK = s.k;
+    $("segChip").className = "seg-chip" + (s.k === "orbit" ? " orbit" : "");
+    $("segChip").textContent = s.k === "orbit" ? "Frozen moment · AI orbit" : "Real take";
+    for (const c of $("stageChips").children) c.classList.toggle("on", c.dataset.k === s.k);
+  }
+  requestAnimationFrame(tickSegs);
+}
+for (const v of [$("stageEx"), $("result")]) v.addEventListener("loadedmetadata", drawSegs);
+drawSegs(); requestAnimationFrame(tickSegs);
+
 // gallery: click a view thumbnail for a full-size lightbox. It reads #stills each time,
 // so it works with whatever views have arrived; arrows, keys and swipe step through them.
 let lbI = 0, lbBox = null;
@@ -611,8 +653,9 @@ function stageView(which) {
   for (const b of $("stageTabs").children) b.classList.toggle("on", (b.dataset.v === "mine") === !!mine);
   $("result").classList.toggle("hidden", !mine); $("stageEx").classList.toggle("hidden", !!mine);
   $("stageShare").classList.toggle("hidden", !mine);
+  segK = ""; drawSegs();
   $("stageTag").textContent = mine ? "Your bullet time" : "Example output";
-  $("stageCap").textContent = mine ? "Downloads, re-rolls and the slow-mo ramp are in the result card." : "Your take plays, time stops, the camera flies around the frozen moment, and the take carries on. Same audio, same phone shot.";
+  $("stageCap").textContent = mine ? "The bar on the video marks your real take (white) and the AI orbit through the frozen moment (green). Downloads and re-rolls are in the result card." : "Your take plays, time stops, the camera flies around the frozen moment, and the take carries on. The bar on the video shows which part is real and which is the AI orbit.";
   if (mine) $("stageEx").pause(); else { $("result").pause(); $("stageEx").play().catch(() => {}); }
 }
 for (const b of $("stageTabs").children) b.onclick = () => stageView(b.dataset.v);

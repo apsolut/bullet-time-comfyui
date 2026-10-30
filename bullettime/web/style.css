@@ -295,6 +295,22 @@ dialog.lb::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(6px)}
 .stage-frame{position:relative;display:grid;place-items:center;background:#000;border-radius:16px;overflow:hidden}
 .stage-frame video{display:block;aspect-ratio:9/16;height:min(560px,calc(100vh - 290px));max-width:100%;object-fit:contain;background:#000}
 .stage-chips{display:flex;flex-wrap:wrap;gap:6px}
+.stage-chips span{transition:color .2s,border-color .2s,background .2s}
+.stage-chips span.on{color:var(--text);border-color:var(--line3);background:rgba(255,255,255,.06)}
+.stage-chips span[data-k=orbit].on{color:var(--acc);border-color:var(--acc-line);background:var(--acc-soft)}
+.stage-chips span[data-k=orbit].on i{background:var(--acc);color:var(--acc-ink)}
+/* what is on screen right now: chip + segment bar over the stage video (real take vs AI orbit) */
+.seg-ui{position:absolute;left:0;right:0;top:0;padding:10px 12px 0;display:grid;gap:8px;pointer-events:none;
+  background:linear-gradient(180deg,rgba(0,0,0,.55),transparent);padding-bottom:22px}
+.seg-bar{position:relative;height:4px;border-radius:2px;overflow:hidden;background:rgba(255,255,255,.12);order:-1}
+.seg-bar b{position:absolute;top:0;bottom:0;background:rgba(255,255,255,.55);border-right:2px solid rgba(0,0,0,.6)}
+.seg-bar b.orbit{background:var(--acc)}
+.seg-head{position:absolute;top:-2px;bottom:-2px;width:2px;background:#fff;box-shadow:0 0 6px #fff;left:0}
+.seg-chip{justify-self:start;display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:650;padding:4px 10px;border-radius:99px;
+  background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.18);color:#fff;backdrop-filter:blur(6px)}
+.seg-chip:before{content:"";width:6px;height:6px;border-radius:50%;background:#fff}
+.seg-chip.orbit{color:var(--acc);border-color:var(--acc-line)}
+.seg-chip.orbit:before{background:var(--acc);animation:pulse 1.4s infinite}
 .stage-chips span{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;padding:4px 10px 4px 4px;border-radius:99px;border:1px solid var(--line2);color:var(--muted)}
 .stage-chips i{font-style:normal;font-size:11px;font-weight:800;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;background:var(--raise);color:var(--text)}
 .stage-cap{margin:0;font-size:13.5px;color:var(--muted);line-height:1.5}

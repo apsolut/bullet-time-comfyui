@@ -194,6 +194,10 @@
       <div class="stage-frame">
         <video id="stageEx" src="/web/example.mp4" poster="/web/example.jpg" muted loop playsinline autoplay preload="metadata"></video>
         <video id="result" class="hidden" controls playsinline loop></video>
+        <div class="seg-ui" id="segUi" aria-hidden="true">
+          <span class="seg-chip" id="segChip">Real take</span>
+          <div class="seg-bar" id="segBar"><i class="seg-head" id="segHead"></i></div>
+        </div>
         <div class="stage-run hidden" id="stageRun" aria-hidden="true">
           <span class="sr-k"><span class="pp-dot"></span><span id="srK">Rendering</span></span>
           <p class="sr-t" id="srT">Shooting 8 new angles</p>
@@ -201,8 +205,8 @@
           <div class="sr-bar" id="srBar"><i data-s="stills"></i><i data-s="orbit"></i><i data-s="upscale"></i><i data-s="render"></i></div>
         </div>
       </div>
-      <div class="stage-chips"><span><i>A</i>Real take</span><span><i>8</i>AI views</span><span><i>↻</i>Orbit through frozen time</span></div>
-      <p class="stage-cap" id="stageCap">Your take plays, time stops, the camera flies around the frozen moment, and the take carries on. Same audio, same phone shot.</p>
+      <div class="stage-chips" id="stageChips"><span data-k="take"><i>A</i>Real take</span><span data-k="orbit" class="views"><i id="viewsN">8</i>AI views</span><span data-k="orbit"><i>↻</i>Orbit through frozen time</span></div>
+      <p class="stage-cap" id="stageCap">Your take plays, time stops, the camera flies around the frozen moment, and the take carries on. The bar on the video shows which part is real and which is the AI orbit.</p>
     </div>
   </aside>
 </main>
