@@ -64,4 +64,5 @@ def analyze(video: str | Path, max_side: int = 320, margin_s: float = 0.6, use_e
     return {"t": round(best / fps, 3), "fps": fps, "duration": round(dur, 3), "frame": best,
             "times": [round(i / fps, 3) for i in range(0, nf, step)], "motion": r(mn), "sharpness": r(shn),
             "score": r(score), "blink": [None if b is None else round(b, 2) for b in blink] if blink else None,
-            "eyes_closed_at_pick": best in closed}
+            "eyes_closed_at_pick": best in closed,
+            "eyes": {"ok": blink is not None, "error": None if blink is not None else (eyes.LAST_ERROR or "off")}}

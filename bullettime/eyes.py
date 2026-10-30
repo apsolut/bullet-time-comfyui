@@ -32,22 +32,42 @@ def _model() -> Path | None:
         return None
 
 
+LAST_ERROR: str | None = None  # why the eye check is unavailable (shown to the user), None when it works
+
+
 def _landmarker(video: bool):
+    global LAST_ERROR
     try:
         import mediapipe as mp  # noqa: F401
         from mediapipe.tasks.python import BaseOptions, vision
-    except Exception:  # noqa: BLE001
+    except Exception as e:  # noqa: BLE001
+        LAST_ERROR = f"mediapipe not available: {str(e).splitlines()[-1][:160]}"
         return None
     m = _model()
     if not m:
+        LAST_ERROR = f"face landmarker model missing and could not be downloaded to {MODEL}"
         return None
     try:
         mode = vision.RunningMode.VIDEO if video else vision.RunningMode.IMAGE
-        return vision.FaceLandmarker.create_from_options(vision.FaceLandmarkerOptions(
+        lm = vision.FaceLandmarker.create_from_options(vision.FaceLandmarkerOptions(
             base_options=BaseOptions(model_asset_path=str(m)), running_mode=mode, output_face_blendshapes=True,
             num_faces=1))
-    except Exception:  # noqa: BLE001
+        LAST_ERROR = None
+        return lm
+    except Exception as e:  # noqa: BLE001
+        LAST_ERROR = f"face landmarker failed to start: {str(e).splitlines()[-1][:160]}"
         return None
+
+
+def status() -> dict:
+    """{"ok": bool, "error": str | None}: whether the eye check works on this machine (cheap to call)."""
+    lm = _landmarker(video=False)
+    if lm is not None:
+        try:
+            lm.close()
+        except Exception:  # noqa: BLE001
+            pass
+    return {"ok": lm is not None, "error": LAST_ERROR}
 
 
 def _blink(result) -> float | None:

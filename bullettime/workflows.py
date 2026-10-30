@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from . import arcs
+from . import arcs, comfy
 
 ROOT = Path(__file__).resolve().parent.parent
 WF_DIR = ROOT / "workflows"
@@ -50,9 +50,12 @@ def orbit_prompt(arc: str, subject: str = "", sound: str = "whoosh") -> str:
 
 
 def build_orbit(arc: str, width: int = 704, height: int = 1280, dist_strength: float = 0.6,
-                guide_strength: float = GUIDE_STRENGTH, keys: list[str] | None = None) -> tuple[dict, dict]:
+                guide_strength: float = GUIDE_STRENGTH, keys: list[str] | None = None,
+                color_match: float = 0.0) -> tuple[dict, dict]:
     """-> (API workflow, bindings). keys: the arc's views that have a usable still (default: all of them).
-    The real frame is LoadImage "real.png"; view v is LoadImage "kf_<v>.png"."""
+    The real frame is LoadImage "real.png"; view v is LoadImage "kf_<v>.png".
+    color_match > 0: every decoded frame is colour-matched (KJNodes ColorMatch, mkl) to the real frame at that
+    strength, so the orbit's grade doesn't drift away from the take it is spliced into."""
     a = arcs.ARCS[arc]
     keys = [k for k in a["keys"] if keys is None or k in keys or arcs.is_real(k)]
     idx = dict(zip(a["keys"], arcs.key_frame_idx(arc)))
@@ -126,8 +129,15 @@ def build_orbit(arc: str, width: int = 704, height: int = 1280, dist_strength: f
 
     dec = n(60, "VAEDecodeTiled", tile_size=768, overlap=64, temporal_size=4096, temporal_overlap=4,
             samples=[crop2, 2], vae=[ck, 2])
+    frames = dec
+    if color_match > 0:
+        ref = n(64, "ResizeImageMaskNode", **{"resize_type": "scale dimensions", "resize_type.width": width,
+                                              "resize_type.height": height, "resize_type.crop": "center",
+                                              "scale_method": "lanczos", "input": [loads["real"], 0]})
+        frames = n(65, "ColorMatch", image_ref=[ref, 0], image_target=[dec, 0], method="mkl",
+                   strength=float(color_match), multithread=True)
     adec = n(61, "LTXVAudioVAEDecode", samples=[sep2, 1], audio_vae=[avae, 0])
-    cv = n(62, "CreateVideo", fps=float(FPS), images=[dec, 0], audio=[adec, 0])
+    cv = n(62, "CreateVideo", fps=float(FPS), images=[frames, 0], audio=[adec, 0])
     n(63, "SaveVideo", filename_prefix="video/bullettime_orbit", format="auto", codec="auto", video=[cv, 0])
 
     bindings = {"prompt": [[pos, "text"]], "seed": [[noise1, "noise_seed"], [noise2, "noise_seed"]]}
@@ -146,23 +156,72 @@ def orbit_size(width: int, height: int) -> tuple[int, int]:
     return 960, 960
 
 
-def stills_workflow() -> tuple[dict, dict, dict]:
-    """-> (workflow, bindings, output-node -> view name) for the 8-view Qwen job."""
+def stills_workflow(views: list[str] | None = None, quality: bool = False) -> tuple[dict, dict, dict]:
+    """-> (workflow, bindings, output-node -> view name) for the Qwen views job.
+    views: a subset of arcs.STILL_VIEWS keeps only those branches (re-rolling one bad view costs ~1/8 of a job).
+    quality: the template's quality switch, 40 steps at cfg 4 instead of the Lightning 4-step LoRA."""
     wf = json.loads((WF_DIR / "orbit_stills_api.json").read_text())
     raw = json.loads((WF_DIR / "orbit_stills_bindings.json").read_text())
     bindings = {k: v for k, v in raw.items() if not k.startswith("_")}
     e_to_view = {f"e{i + 1}": v for i, v in enumerate(arcs.STILL_VIEWS)}
     rename = {node: e_to_view[e] for node, e in raw["_outputs"].items()}
+    if views is not None:
+        keep = set(views)
+        for save, view in list(rename.items()):
+            if view not in keep:
+                prefix = wf[save]["inputs"]["images"][0].rsplit(":", 1)[0]  # the branch subgraph feeding it
+                loads = {v_[0] for k_, v_ in wf.items() if k_.startswith(prefix + ":")
+                         for v_ in v_["inputs"].values() if isinstance(v_, list) and ":" not in v_[0]}
+                for nid in [k_ for k_ in wf if k_.startswith(prefix + ":")] + [save] + sorted(loads):
+                    wf.pop(nid, None)
+                del rename[save]
+        for k in list(bindings):
+            bindings[k] = [pair for pair in comfy._pairs(bindings[k]) if pair[0] in wf]
+            if not bindings[k]:
+                del bindings[k]
+    if quality:
+        for node in wf.values():
+            if node["class_type"] == "PrimitiveBoolean":
+                node["inputs"]["value"] = False
     return wf, bindings, rename
 
 
-def stills_values(image: str, seed: int | None = None, distance: str = arcs.DISTANCE) -> dict:
+def stills_values(image: str, seed: int | None = None, distance: str = arcs.DISTANCE,
+                  views: list[str] | None = None) -> dict:
     vals = {"image": image, "angle_lora": arcs.ANGLE_LORA}
     for i, v in enumerate(arcs.STILL_VIEWS):
+        if views is not None and v not in views:
+            continue
         vals[f"p{i + 1}"] = arcs.view_prompt(v, distance)
         if seed is not None:
             vals[f"s{i + 1}"] = seed + i
     return vals
+
+
+# SeedVR2 (open weights, Apache-2.0): video upscaler available on Comfy Cloud. 3B fp8 is the fast one.
+SEEDVR2_DIT = "seedvr2_ema_3b_fp8_e4m3fn.safetensors"
+SEEDVR2_VAE = "ema_vae_fp16.safetensors"
+
+
+def build_upscale(video: str = "orbit.mp4", short_side: int = 1080, batch: int = 5,
+                  dit: str = SEEDVR2_DIT) -> tuple[dict, dict]:
+    """-> (API workflow, bindings): SeedVR2 upscales the orbit clip (704x1280 -> short side `short_side`),
+    keeping its audio. batch must be 4n+1; bigger = more temporal consistency, more VRAM."""
+    W: dict = {}
+
+    def n(i, cls, **inp):
+        W[str(i)] = {"class_type": cls, "inputs": inp}
+        return str(i)
+
+    vid = n(1, "LoadVideo", file=video)
+    comp = n(2, "GetVideoComponents", video=[vid, 0])
+    d = n(3, "SeedVR2LoadDiTModel", model=dit, device="cuda:0")
+    v = n(4, "SeedVR2LoadVAEModel", model=SEEDVR2_VAE, device="cuda:0")
+    up = n(5, "SeedVR2VideoUpscaler", image=[comp, 0], dit=[d, 0], vae=[v, 0], seed=42, resolution=short_side,
+           max_resolution=0, batch_size=batch, uniform_batch_size=True, color_correction="lab")
+    cv = n(6, "CreateVideo", fps=[comp, 2], images=[up, 0], audio=[comp, 1])
+    n(7, "SaveVideo", filename_prefix="video/bullettime_orbit_up", format="auto", codec="auto", video=[cv, 0])
+    return W, {"video": [[vid, "file"]], "seed": [[up, "seed"]]}
 
 
 if __name__ == "__main__":

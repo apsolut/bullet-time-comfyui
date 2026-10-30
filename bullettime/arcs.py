@@ -11,6 +11,13 @@ from __future__ import annotations
 # vertical frames (found in one-shot-multicam), so every still uses the trained format.
 ANGLE_LORA = 0.9
 DISTANCE = "medium shot"
+DISTANCES = ["close-up", "medium shot", "wide shot"]  # the LoRA's distance tokens, tight to wide
+
+
+def wider(distance: str) -> str:
+    """The next wider distance token (a retry that steps back; "wide shot" stays)."""
+    i = DISTANCES.index(distance) if distance in DISTANCES else 1
+    return DISTANCES[min(i + 1, len(DISTANCES) - 1)]
 
 # The 8 branches of one Qwen job: name -> (azimuth, elevation). Order = branch p1..p8 = output e1..e8.
 VIEWS: dict[str, tuple[str, str]] = {

@@ -79,6 +79,9 @@ bullettime -P work run take.mp4 --arc sweep --dry-run      # plan + cost, spends
 bullettime -P work run take.mp4 --arc sweep --out bt.mp4   # everything
 bullettime -P work orbit --arc orbit-left         # re-roll with the same views (1 job)
 bullettime -P work orbit --guide 0.8              # stick closer to the views (default 0.6)
+bullettime -P work orbit --arc orbit-360 --variants 3 --color-match 0.5 --upscale   # studio run
+bullettime -P work status                         # views, orbits, spend
+bullettime -P work export                         # ProRes master + timeline.json + graphs
 bullettime -P work render --ramp 0.8 --slow 4     # free re-render
 bullettime workflow --arc sweep > sweep_api.json  # the exact graph, for ComfyUI
 ```
@@ -98,7 +101,63 @@ app, **ComfyUI workflows** downloads the exact graphs submitted for your result.
 ## Tests
 
 `pytest` runs the whole pipeline offline (Comfy Cloud faked, real ffmpeg and OpenCV): graph integrity,
-LoRA prompt format, the moment picker, durations, cut continuity, no-audio takes and the web API.
+LoRA prompt format, the moment picker, the eye check, durations, cut continuity, no-audio takes, single-view
+re-rolls, variants, upscale, export and the web API.
+
+## Studio use
+
+Everything a team needs to run this as a service rather than a toy, all open weights, all on Comfy Cloud:
+
+| | What | Cost |
+|---|---|---|
+| **Quality views** | the template's 40-step / cfg 4 path instead of the Lightning 4-step LoRA (`--quality`) | ~$0.25 |
+| **Fix one view** | a rejected view (wrong orientation, sideways, closed eyes) is re-rolled on its own with a new seed, then one distance wider, in a pruned single-branch graph. Automatic before every orbit (`--no-fix-views` to skip) | ~$0.025 per view |
+| **Variants** | `--variants 3`: three orbits with different seeds submitted at once, pick the best in the web app or with `bullettime select SEED` | 3 x $0.055 |
+| **Colour match** | `--color-match 0.5`: every orbit frame is matched (KJNodes ColorMatch, mkl) to the real frame inside the graph, so the generated grade can't drift from the take it is cut into | free |
+| **Upscale** | `--upscale` / **Upscale orbit**: [SeedVR2](https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler) 3B (Apache-2.0) takes the 704x1280 orbit to a 1080 short side with its audio; the splice then uses the upscaled clip | ~$0.12 |
+| **Studio export** | `bullettime export` / **Studio export**: ProRes 422 HQ master, the H.264 delivery, the freeze loop, the raw orbit clip(s), the frozen frame, every view, `timeline.json` (segment in/out points and speeds for an NLE), the cost ledger and the exact ComfyUI graphs that ran | free |
+| **Ledger** | every paid job is booked with the Comfy Cloud balance before and after it (`bullettime status`, the web app, `ledger.json`) | |
+| **Guard rails** | at most `BULLETTIME_MAX_JOBS` jobs in flight per server (default 3); transient Comfy Cloud errors (network, 5xx, 429) retry with backoff instead of failing a paid pipeline; the eye check reports why when it can't run | |
+
+### Deploying for a team
+
+The server is stateless apart from its data folder; generation never touches the host. One container serves a
+whole team:
+
+```bash
+# Docker (any box with Docker; no GPU)
+docker build -t bullettime .
+docker run -d -p 8790:8790 -v bullettime-data:/data \
+  -e COMFY_API_KEY=... -e BULLETTIME_PASSWORD=... bullettime
+# or: COMFY_API_KEY=... BULLETTIME_PASSWORD=... docker compose up -d
+
+# Fly.io (fly.toml included: Frankfurt, 2 GB, a 10 GB volume at /data, health checks)
+fly launch --copy-config --no-deploy
+fly secrets set COMFY_API_KEY=... BULLETTIME_PASSWORD=...
+fly deploy
+```
+
+| Variable | |
+|---|---|
+| `COMFY_API_KEY` | server-side key: nobody on the team has to paste one (a key pasted in the browser still wins) |
+| `BULLETTIME_PASSWORD` | shared app password; every `/api` call must carry it (`X-App-Password`), the web app asks once |
+| `BULLETTIME_MAX_JOBS` | Comfy jobs in flight at once (default 3) |
+| `BULLETTIME_DATA` | data folder: projects, workflow archive (default `~/.bullettime`) |
+| `BULLETTIME_MAX_UPLOAD_MB`, `BULLETTIME_MAX_UPLOAD_S` | upload limits (default 200 MB, 30 s) |
+
+`GET /api/health` reports version, ffmpeg, the eye check, whether a server key is set and the per-job costs.
+`GET /api/projects` lists projects (the web app shows them as "Recent"); `DELETE /api/projects/{id}` removes
+one. The full API is at `/api/docs`.
+
+### Roadmap (not in this release)
+
+- **Identity LoRAs for LTX-2.3** (`ltx-2.3-id-lora-*` on Comfy Cloud) to hold the face harder through the
+  back half of a 360. Untested; one job each to find out.
+- **Second reference image into Qwen** (the sharpest frontal frame of the take next to the frozen frame) for
+  identity on the far-side views.
+- **Resume after a server restart** for jobs that finished on Comfy Cloud while the server was down
+  (`comfy.fetch_finished` exists; the web flow doesn't use it yet).
+- **Multi-person takes** (`subject` is a prompt hint today, not a mask).
 
 ## Limitations
 

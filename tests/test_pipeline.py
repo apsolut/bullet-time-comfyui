@@ -43,6 +43,11 @@ def fake_run_workflow(workflow, bindings, values, out_dir, key=None, on_status=N
             f = out / f"{view}.png"
             ff("-f", "lavfi", "-i", "color=c=0x556677:s=768x1344", "-frames:v", "1", f)
             files.append(str(f))
+    elif "SeedVR2VideoUpscaler" in json.dumps(patched):  # the upscale job: same clip at 2x
+        src = next(v for v in values.values() if comfy.is_file(v))
+        f = out / "bullettime_orbit_up_00001.mp4"
+        ff("-i", src, "-vf", "scale=iw*2:ih*2", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "copy", f)
+        files.append(str(f))
     else:
         n = patched["10"]["inputs"]["length"]
         f = out / "bullettime_orbit_00001.mp4"
@@ -171,6 +176,72 @@ def test_server_flow(take, tmp_path, monkeypatch):
     assert c.get(f"/api/projects/{pid}/files/../../etc/passwd").status_code == 404
     assert "k" not in (tmp_path / "projects" / pid / "state.json").read_text().split('"')  # key never stored
     assert c.post(f"/api/projects/{pid}/generate", json={"arc": "orbit-left"}).json()["jobs"] == ["orbit"]
+
+
+@pytest.fixture(autouse=True)
+def no_billing(monkeypatch):
+    monkeypatch.setattr(comfy, "balance_usd", lambda key=None: 10.0)
+
+
+def test_single_view_graph_is_a_pruned_template():
+    full, fb, _ = workflows.stills_workflow()
+    one, b, rename = workflows.stills_workflow(views=["r"])
+    assert list(rename.values()) == ["r"] and len(one) < len(full) / 4
+    for nid, node in one.items():
+        for v in node["inputs"].values():
+            if isinstance(v, list) and len(v) == 2 and isinstance(v[0], str):
+                assert v[0] in one, f"node {nid} links to pruned {v[0]}"
+    assert set(b) == {"image", "angle_lora", "img2", "l2", "p2", "s2"}
+    vals = workflows.stills_values("x.png", 1, "close-up", views=["r"])
+    assert set(vals) == {"image", "angle_lora", "p2", "s2"} and vals["p2"].startswith("<sks> right side view")
+    q, _, _ = workflows.stills_workflow(quality=True)
+    assert all(n["inputs"]["value"] is False for n in q.values() if n["class_type"] == "PrimitiveBoolean")
+
+
+def test_color_match_and_upscale_graphs():
+    w, _ = workflows.build_orbit("sweep", color_match=0.5)
+    cm = [n for n in w.values() if n["class_type"] == "ColorMatch"]
+    assert len(cm) == 1 and cm[0]["inputs"]["strength"] == 0.5
+    assert w["62"]["inputs"]["images"][0] == "65"  # the video is made from the matched frames
+    w0, _ = workflows.build_orbit("sweep")
+    assert not [n for n in w0.values() if n["class_type"] == "ColorMatch"]
+    u, b = workflows.build_upscale(short_side=1440)
+    assert u["5"]["inputs"]["resolution"] == 1440 and b["video"] == [["1", "file"]]
+
+
+def test_variants_retry_upscale_export(take, tmp_path, monkeypatch):
+    monkeypatch.setattr(comfy, "run_workflow", fake_run_workflow)
+    p = pipeline.new_project(take, tmp_path)
+    pipeline.stills(p, key="k")
+    # pretend one view failed its check, then re-roll just that one
+    p.state["stills"]["views"]["r"].update(ok=False, reason="test"); p.save()
+    calls = []
+    real_fake = fake_run_workflow
+
+    def spy(workflow, bindings, values, out_dir, key=None, on_status=None, rename=None):
+        calls.append((len(workflow), sorted(rename or {})))
+        return real_fake(workflow, bindings, values, out_dir, key, on_status, rename)
+    monkeypatch.setattr(comfy, "run_workflow", spy)
+    st = pipeline.retry_views(p, key="k")
+    assert st["views"]["r"]["ok"] and calls[-1][0] < 40  # one branch, not the whole template
+    outs = pipeline.variants(p, "orbit-right", 3, key="k", seed=5)
+    assert len(outs) == 3 and len({o["seed"] for o in outs}) == 3 and len(p.state["orbits"]) == 3
+    assert p.state["orbit"]["seed"] == outs[0]["seed"]
+    pipeline.select_orbit(p, outs[2]["seed"])
+    assert p.state["orbit"]["seed"] == outs[2]["seed"] and "render" not in p.state
+    pipeline.upscale(p, key="k")
+    assert p.state["orbit"]["path_up"].endswith("orbit_up.mp4")
+    assert probe(p.path(p.state["orbit"]["path_up"]))["width"] == 1408
+    rep = pipeline.render(p)
+    assert rep["orbit_clip"].endswith("orbit_up.mp4")
+    kinds = [e["kind"] for e in p.state["ledger"]]
+    assert kinds == ["stills", "view", "orbit", "orbit", "orbit", "upscale"]
+    z = pipeline.export(p)
+    import zipfile
+    names = zipfile.ZipFile(z).namelist()
+    assert {"bullettime.mp4", "bullettime_master.mov", "timeline.json", "frozen_frame.png", "views/r.png"} <= set(names)
+    assert any(n.startswith("orbit/") for n in names)
+    assert probe(tmp_path / "x" if False else z.parent / "bullettime_master.mov")["codec_name" if False else "width"] == 720
 
 
 def test_closed_eyes_are_never_frozen():

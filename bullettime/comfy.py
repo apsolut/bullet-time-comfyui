@@ -15,6 +15,7 @@ from __future__ import annotations
 import copy
 import json
 import os
+import threading
 import time
 from pathlib import Path
 from typing import Callable
@@ -23,9 +24,17 @@ BASE_URL = os.environ.get("COMFY_CLOUD_BASE_URL", "https://cloud.comfy.org")
 TERMINAL = {"success", "error", "non_retryable_error", "lost", "cancelled"}
 VIDEO_EXT = (".mp4", ".webm", ".mov", ".mkv")
 IMAGE_EXT = (".png", ".jpg", ".jpeg", ".webp")
-# Measured on Comfy Cloud, Oct 2026 (balance delta / jobs). reshoot = CrossView IC-LoRA two-stage 704x1280 x 121 f.
-JOB_COST_USD = {"stills": 0.045, "orbit": 0.055}
+# Measured on Comfy Cloud, Oct 2026 (balance delta / jobs). stills = 8 Qwen views (Lightning 4 steps);
+# stills_quality = the same at 40 steps cfg 4 (estimate); view = one re-rolled view (model load dominates: $0.025 measured);
+# upscale = SeedVR2 3B on a 193-frame orbit.
+JOB_COST_USD = {"stills": 0.045, "stills_quality": 0.25, "view": 0.025, "orbit": 0.055, "upscale": 0.12}
 COST_PER_JOB_USD = max(JOB_COST_USD.values())  # conservative figure for budget guards
+
+# Studio guard rails: at most this many Comfy jobs in flight per process (BULLETTIME_MAX_JOBS), and transient
+# failures (network, 5xx, 429 rate limit) are retried with backoff instead of failing a paid pipeline.
+MAX_JOBS = max(1, int(os.environ.get("BULLETTIME_MAX_JOBS", "3")))
+RETRIES = 4
+_slots = threading.BoundedSemaphore(MAX_JOBS)
 
 
 def job_cost(kind: str) -> float:
@@ -58,9 +67,28 @@ def _err(r) -> str:
     return f"HTTP {r.status_code} {r.request.method} {r.url.split('?')[0]}: {r.text[:1500]}"
 
 
-def check_key(key=None) -> dict:
+def _request(method: str, url: str, retries: int = RETRIES, **kw):
+    """requests.request with retries on connection errors, timeouts, 5xx and 429 (backoff 2, 4, 8, 16 s).
+    4xx other than 429 are returned as they are (the caller reports them)."""
     import requests
-    r = requests.get(f"{BASE_URL}/api/user", headers=_headers(key), timeout=30)
+    last = None
+    for attempt in range(retries + 1):
+        try:
+            r = requests.request(method, url, **kw)
+            if r.status_code < 500 and r.status_code != 429:
+                return r
+            if r.status_code == 429 and "subscription" in r.text.lower():
+                return r
+            last = ComfyError(_err(r))
+        except (requests.ConnectionError, requests.Timeout) as e:
+            last = e
+        if attempt < retries:
+            time.sleep(2 ** (attempt + 1))
+    raise ComfyError(f"Comfy Cloud unreachable after {retries + 1} tries: {last}")
+
+
+def check_key(key=None) -> dict:
+    r = _request("GET", f"{BASE_URL}/api/user", headers=_headers(key), timeout=30)
     if r.status_code in (401, 403):
         raise ComfyError("Comfy Cloud rejected the API key (401)")
     if r.status_code == 429:
@@ -71,10 +99,9 @@ def check_key(key=None) -> dict:
 
 
 def balance_usd(key=None) -> float | None:
-    import requests
     try:
-        r = requests.get(f"{BASE_URL}/api/billing/usage/timeseries", headers=_headers(key), timeout=30,
-                         params={"granularity": "day", "months": 1})
+        r = _request("GET", f"{BASE_URL}/api/billing/usage/timeseries", headers=_headers(key), timeout=30, retries=1,
+                     params={"granularity": "day", "months": 1})
         return round(r.json()["summary"]["balance"]["amount_cents"] / 100.0, 4) if r.ok else None
     except Exception:  # noqa: BLE001
         return None
@@ -82,10 +109,9 @@ def balance_usd(key=None) -> float | None:
 
 def upload(path: str, key=None) -> str:
     """Upload an input file; returns the name to put into LoadImage/LoadAudio."""
-    import requests
     with open(path, "rb") as f:
-        r = requests.post(f"{BASE_URL}/api/upload/image", headers=_headers(key, False), timeout=180,
-                          files={"image": (Path(path).name, f)}, data={"type": "input", "overwrite": "true"})
+        r = _request("POST", f"{BASE_URL}/api/upload/image", headers=_headers(key, False), timeout=300, retries=2,
+                     files={"image": (Path(path).name, f)}, data={"type": "input", "overwrite": "true"})
     if not r.ok:
         raise ComfyError(f"upload failed for {Path(path).name}: {_err(r)}")
     body = r.json()
@@ -177,8 +203,7 @@ def _save_submitted(workflow: dict, prompt_id: str):
 
 
 def submit(workflow: dict, key=None) -> str:
-    import requests
-    r = requests.post(f"{BASE_URL}/api/prompt", headers=_headers(key), json={"prompt": workflow}, timeout=120)
+    r = _request("POST", f"{BASE_URL}/api/prompt", headers=_headers(key), json={"prompt": workflow}, timeout=120)
     if not r.ok:
         raise ComfyError(f"workflow rejected: {_err(r)}")
     body = r.json()
@@ -190,10 +215,9 @@ def submit(workflow: dict, key=None) -> str:
 
 def wait(prompt_id: str, key=None, timeout: float = 1800, poll: float = 5.0,
          on_status: Callable[[str], None] | None = None) -> str:
-    import requests
     t0, last = time.time(), None
     while time.time() - t0 < timeout:
-        r = requests.get(f"{BASE_URL}/api/job/{prompt_id}/status", headers=_headers(key), timeout=60)
+        r = _request("GET", f"{BASE_URL}/api/job/{prompt_id}/status", headers=_headers(key), timeout=60)
         if r.ok:
             st = r.json().get("status")
             if st != last:
@@ -209,8 +233,7 @@ def wait(prompt_id: str, key=None, timeout: float = 1800, poll: float = 5.0,
 
 
 def job_detail(prompt_id: str, key=None) -> dict:
-    import requests
-    r = requests.get(f"{BASE_URL}/api/jobs/{prompt_id}", headers=_headers(key), timeout=60)
+    r = _request("GET", f"{BASE_URL}/api/jobs/{prompt_id}", headers=_headers(key), timeout=60)
     if not r.ok:
         raise ComfyError(f"job detail failed: {_err(r)}")
     return r.json()
@@ -235,12 +258,11 @@ def find_videos(outputs: dict) -> list[dict]:
 
 def download(fi: dict, out_path: Path, key=None) -> Path:
     """GET /api/view returns a 302 to a signed URL; follow it without forwarding the API key."""
-    import requests
     params = {"filename": fi["filename"], "subfolder": fi.get("subfolder", ""), "type": fi.get("type", "output")}
-    r = requests.get(f"{BASE_URL}/api/view", headers=_headers(key, False), params=params, allow_redirects=False,
-                     timeout=120)
+    r = _request("GET", f"{BASE_URL}/api/view", headers=_headers(key, False), params=params, allow_redirects=False,
+                 timeout=120)
     if r.status_code in (301, 302, 303, 307, 308):
-        r = requests.get(r.headers["Location"], timeout=600)
+        r = _request("GET", r.headers["Location"], timeout=600)
     if not r.ok:
         raise ComfyError(f"download failed: {_err(r)}")
     out_path = Path(out_path)
@@ -261,11 +283,18 @@ def is_file(v) -> bool:
 
 def run_workflow(workflow: dict, bindings: dict, values: dict, out_dir: Path, key=None,
                  on_status: Callable[[dict], None] | None = None, rename: dict | None = None) -> dict:
-    """Run any API-format workflow once: file-path values are uploaded; every output file is downloaded."""
+    """Run any API-format workflow once: file-path values are uploaded; every output file is downloaded.
+    At most MAX_JOBS run at once per process; the rest wait their turn (status "waiting")."""
     values = dict(values)
-    rec = {"status": "uploading", "started": time.time(), "outputs": []}
+    rec = {"status": "waiting", "started": time.time(), "outputs": []}
     emit = (lambda: on_status(dict(rec))) if on_status else (lambda: None)
     emit()
+    with _slots:
+        return _run_workflow(workflow, bindings, values, out_dir, key, rec, emit, rename)
+
+
+def _run_workflow(workflow, bindings, values, out_dir, key, rec, emit, rename) -> dict:
+    rec["status"] = "uploading"; emit()
     for k, v in list(values.items()):
         if is_file(v):
             values[k] = upload(v, key)
@@ -293,8 +322,7 @@ def run_workflow(workflow: dict, bindings: dict, values: dict, out_dir: Path, ke
 
 def job_status(prompt_id: str, key=None) -> str | None:
     """Current status of an already-submitted job (no new submission, free). None if unknown."""
-    import requests
-    r = requests.get(f"{BASE_URL}/api/job/{prompt_id}/status", headers=_headers(key), timeout=60)
+    r = _request("GET", f"{BASE_URL}/api/job/{prompt_id}/status", headers=_headers(key), timeout=60, retries=1)
     return r.json().get("status") if r.ok else None
 
 

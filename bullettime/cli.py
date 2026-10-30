@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -47,6 +48,21 @@ def main(argv=None) -> None:
     s = sub.add_parser("stills", help="8 views of the frozen frame (1 Qwen job)")
     s.add_argument("--t", type=float)
     s.add_argument("--seed", type=int)
+    s.add_argument("--quality", action="store_true")
+
+    rv = sub.add_parser("retry-views", help="re-roll the rejected views (or --views) with new seeds, ~$0.025 each")
+    rv.add_argument("--views", nargs="*", choices=list(arcs.VIEWS))
+    rv.add_argument("--seed", type=int)
+
+    up = sub.add_parser("upscale", help="SeedVR2 upscale of the current orbit (1 job, ~$0.12), then re-render")
+    up.add_argument("--short-side", type=int, default=1080)
+
+    se = sub.add_parser("select", help="make one of the generated orbits current (see `bullettime -P work status`)")
+    se.add_argument("seed", type=int)
+
+    sub.add_parser("status", help="project summary: views, orbits, spend")
+    ex = sub.add_parser("export", help="studio bundle: ProRes master, loop, frame, views, timeline.json, graphs")
+    ex.add_argument("--no-master", action="store_true", help="skip the ProRes master")
 
     for name, hlp in (("orbit", "the camera move through frozen time (1 LTX job)"),
                       ("run", "new + stills + orbit + render in one go")):
@@ -61,6 +77,12 @@ def main(argv=None) -> None:
         o.add_argument("--sound", default="whoosh", choices=["whoosh", "silent"])
         o.add_argument("--guide", type=float, default=workflows.GUIDE_STRENGTH,
                        help="keyframe strength of the generated views (lower = smoother, looser)")
+        o.add_argument("--color-match", type=float, default=0.0, metavar="0..1",
+                       help="match the orbit's colours to the real frame (0 = off)")
+        o.add_argument("--variants", type=int, default=1, metavar="N", help="N orbits with different seeds at once")
+        o.add_argument("--quality", action="store_true", help="40-step views instead of Lightning 4-step (~5x view cost)")
+        o.add_argument("--no-fix-views", action="store_true", help="don't re-roll rejected views before the orbit")
+        o.add_argument("--upscale", action="store_true", help="SeedVR2 upscale of the orbit before the splice")
         o.add_argument("--dry-run", action="store_true", help="print the plan and cost, spend nothing")
 
     r = sub.add_parser("render", help="splice the orbit into the take (free)")
@@ -76,10 +98,12 @@ def main(argv=None) -> None:
     sv = sub.add_parser("serve", help="run the web app")
     sv.add_argument("--host", default="127.0.0.1")
     sv.add_argument("--port", type=int, default=8790)
-    sv.add_argument("--data", default=str(Path.home() / ".bullettime"))
+    sv.add_argument("--data", default=os.environ.get("BULLETTIME_DATA") or str(Path.home() / ".bullettime"))
 
     sub.add_parser("arcs", help="list the camera arcs")
     args = ap.parse_args(argv)
+    if getattr(args, "project", None):  # keep every submitted graph next to the project, for `export`
+        comfy.set_workflow_archive(Path(args.project) / "workflows", keep_s=365 * 86400)
 
     if args.cmd == "analyze":
         res = pick.analyze(args.video)
@@ -98,7 +122,7 @@ def main(argv=None) -> None:
         print(f"project {p.dir}: freeze at {p.state['t']:.2f}s (auto pick {p.state['analysis']['t']:.2f}s)")
     elif args.cmd == "stills":
         p = _project(args)
-        st = pipeline.stills(p, args.t, seed=args.seed, log=_log, on_status=_status)
+        st = pipeline.stills(p, args.t, seed=args.seed, log=_log, on_status=_status, quality=args.quality)
         for v, rec in st["views"].items():
             print(f"  {v:3s} {'ok ' if rec['ok'] else 'BAD'} {rec['path']} {'' if rec['ok'] else rec['reason']}")
     elif args.cmd in ("orbit", "run"):
@@ -110,20 +134,32 @@ def main(argv=None) -> None:
             print(f"freeze at {p.state['t']:.2f}s")
         else:
             p = _project(args)
-        est = pipeline.estimate(p)
+        est = pipeline.estimate(p, quality=args.quality, n_variants=args.variants, upscale=args.upscale)
         print(f"{args.arc}: {' + '.join(est['jobs'])} ≈ ${est['usd']:.3f} on Comfy Cloud, "
               f"freeze lasts {arcs.freeze_seconds(args.arc)}s")
+        ey = (p.state.get("analysis") or {}).get("eyes")
+        if ey and not ey["ok"]:
+            print(f"  warning: eye check off ({ey['error']}); the freeze may land on a blink")
         if args.dry_run:
             return
         if not comfy.env_key():
             sys.exit("error: set COMFY_API_KEY (https://platform.comfy.org/profile/api-keys)")
-        if "stills" in est["jobs"]:
-            pipeline.stills(p, seed=args.seed, log=_log, on_status=_status)
+        if "stills" in est["jobs"] or "stills_quality" in est["jobs"]:
+            pipeline.stills(p, seed=args.seed, log=_log, on_status=_status, quality=args.quality)
             bad = {v: r["reason"] for v, r in p.state["stills"]["views"].items() if not r["ok"]}
             if bad:
                 print(f"  rejected stills: {bad}")
-        pipeline.orbit(p, args.arc, seed=args.seed, subject=args.subject, sound=args.sound, log=_log, on_status=_status,
-                       guide=args.guide)
+        if not args.no_fix_views and any(not r["ok"] for r in p.state["stills"]["views"].values()):
+            pipeline.retry_views(p, seed=args.seed, log=_log, on_status=_status)
+        kw = dict(subject=args.subject, sound=args.sound, log=_log, guide=args.guide, color_match=args.color_match)
+        if args.variants > 1:
+            outs = pipeline.variants(p, args.arc, args.variants, seed=args.seed,
+                                     on_status=lambda i, rec: _status({**rec, "status": f"variant {i + 1}: {rec.get('status')}"}), **kw)
+            print("  variants: " + ", ".join(f"seed {o['seed']}" for o in outs) + f" (current: {outs[0]['seed']}; `bullettime -P {args.project} select SEED` to switch)")
+        else:
+            pipeline.orbit(p, args.arc, seed=args.seed, on_status=_status, **kw)
+        if args.upscale:
+            pipeline.upscale(p, log=_log, on_status=_status)
         if args.cmd == "run":
             rep = pipeline.render(p, log=_log)
             out = p.path(rep["out"])
@@ -134,6 +170,35 @@ def main(argv=None) -> None:
         p = _project(args)
         rep = pipeline.render(p, ramp_s=args.ramp, ramp_slow=args.slow, sound=args.sound, log=_log)
         print(f"done: {p.path(rep['out'])} ({rep['duration']:.1f}s), loop: {p.path(rep['orbit_only'])}")
+    elif args.cmd == "retry-views":
+        p = _project(args)
+        st = pipeline.retry_views(p, args.views or None, seed=args.seed, log=_log, on_status=_status)
+        print("  " + ", ".join(f"{v}: {'ok' if r['ok'] else r['reason']}" for v, r in st["views"].items()))
+    elif args.cmd == "upscale":
+        p = _project(args)
+        pipeline.upscale(p, short_side=args.short_side, log=_log, on_status=_status)
+        rep = pipeline.render(p, log=_log)
+        print(f"done: {p.path(rep['out'])} (orbit clip: {rep['orbit_clip']})")
+    elif args.cmd == "select":
+        p = _project(args)
+        o = pipeline.select_orbit(p, args.seed)
+        rep = pipeline.render(p, log=_log)
+        print(f"current orbit: {o['arc']} seed {o['seed']} -> {p.path(rep['out'])}")
+    elif args.cmd == "status":
+        p = _project(args)
+        s = p.state
+        print(f"project {p.dir}: take {s['take']} {s['info']['duration']:.1f}s, freeze at {s['t']:.2f}s, spent ${pipeline.spent_usd(p):.3f}")
+        for v, r in ((s.get("stills") or {}).get("views") or {}).items():
+            print(f"  view {v:3s} {'ok ' if r['ok'] else 'BAD'} {r['path']} {'' if r['ok'] else r['reason']}")
+        cur = (s.get("orbit") or {}).get("path")
+        for o in s.get("orbits", []):
+            print(f"  orbit {o['arc']:12s} seed {o['seed']:<16d} {'* ' if o['path'] == cur else '  '}{o['path']}{' (+upscaled)' if o.get('path_up') else ''}")
+        if s.get("render"):
+            print(f"  render {p.path(s['render']['out'])} ({s['render']['duration']:.1f}s)")
+    elif args.cmd == "export":
+        p = _project(args)
+        z = pipeline.export(p, master=not args.no_master, log=_log)
+        print(f"done: {z}")
     elif args.cmd == "serve":
         import uvicorn
         from .server import create_app

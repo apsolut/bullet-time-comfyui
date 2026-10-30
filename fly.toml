@@ -1,0 +1,39 @@
+# Fly.io: `fly launch --copy-config --no-deploy` once, then `fly deploy`. See README "Production".
+app = "bullet-time"
+primary_region = "fra"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  BULLETTIME_DATA = "/data"
+  BULLETTIME_MAX_JOBS = "3"
+  PORT = "8790"
+
+[http_service]
+  internal_port = 8790
+  force_https = true
+  auto_stop_machines = "off"       # a job in flight must not be stopped with the machine
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "requests"
+    hard_limit = 50
+    soft_limit = 25
+
+[[http_service.checks]]
+  interval = "30s"
+  timeout = "5s"
+  grace_period = "20s"
+  method = "GET"
+  path = "/api/health"
+
+[mounts]
+  source = "bullettime_data"
+  destination = "/data"
+  initial_size = "10gb"
+
+[[vm]]
+  size = "shared-cpu-2x"
+  memory = "2gb"

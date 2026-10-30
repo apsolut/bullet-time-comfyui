@@ -49,6 +49,16 @@ canvas{width:100%;height:70px;display:block;border-radius:8px;background:#0e1115
 a{color:var(--acc2)}
 .muted{color:var(--dim);font-size:13px}
 label.inline{display:flex;gap:8px;align-items:center;color:var(--dim)}
+select{background:#0e1115;border:1px solid var(--line);color:var(--fg);border-radius:8px;padding:6px 8px;font:inherit}
+details.pro summary{cursor:pointer;color:var(--dim);font-size:13px;text-transform:uppercase;letter-spacing:.08em}
+.recent{display:flex;gap:8px;flex-wrap:wrap}
+.recent a{display:inline-block;border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:13px;color:var(--fg);text-decoration:none}
+.recent a.on{border-color:var(--acc)}
+.variants{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.variant{border:1px solid var(--line);border-radius:10px;padding:6px;cursor:pointer;text-align:center;font-size:12px;color:var(--dim)}
+.variant video{aspect-ratio:9/16;max-height:none;border-radius:6px}
+.variant.on{border-color:var(--acc)}
+.warn{color:#ffcf6b}
 </style>
 </head>
 <body>
@@ -63,6 +73,13 @@ label.inline{display:flex;gap:8px;align-items:center;color:var(--dim)}
       <button id="keyCheck">Check</button>
     </div>
     <p class="muted" id="keyMsg">Stored only in this browser. Get one at <a href="https://platform.comfy.org/profile/api-keys" target="_blank" rel="noopener">platform.comfy.org</a>. About $0.10 per bullet time; picking the moment and re-rendering are free.</p>
+    <div class="row hidden" id="pwRow"><input type="password" id="pw" placeholder="App password (this server asks for one)" autocomplete="off"><button id="pwSave">Save</button></div>
+    <p class="muted" id="health"></p>
+  </section>
+
+  <section class="card" id="recentCard">
+    <h2>Recent projects</h2>
+    <div class="recent" id="recent"><span class="muted">none yet</span></div>
   </section>
 
   <section class="card" id="uploadCard">
@@ -90,6 +107,25 @@ label.inline{display:flex;gap:8px;align-items:center;color:var(--dim)}
         <div class="row" style="margin-top:10px">
           <label class="inline"><input type="checkbox" id="whoosh" checked> Generated whoosh sound during the freeze</label>
         </div>
+        <details class="pro" style="margin-top:10px">
+          <summary>Studio options</summary>
+          <div class="row" style="margin-top:8px">
+            <label class="inline"><input type="checkbox" id="quality"> Quality views (40 steps, ~5x the view cost)</label>
+          </div>
+          <div class="row" style="margin-top:6px">
+            <label class="inline">Variants <select id="variants"><option>1</option><option>2</option><option>3</option><option>4</option></select> orbits in parallel, pick the best</label>
+          </div>
+          <div class="row" style="margin-top:6px">
+            <label class="inline">Colour match to the real frame <input type="range" id="cm" min="0" max="1" step="0.1" value="0"> <span id="cmV">off</span></label>
+          </div>
+          <div class="row" style="margin-top:6px">
+            <label class="inline">View keyframe strength <input type="range" id="guide" min="0.3" max="1" step="0.1" value="0.6"> <span id="guideV">0.6</span></label>
+          </div>
+          <div class="row" style="margin-top:6px">
+            <label class="inline"><input type="checkbox" id="fixViews" checked> Re-roll rejected views automatically</label>
+            <label class="inline"><input type="checkbox" id="upscaleOpt"> SeedVR2 upscale of the orbit (~$0.12)</label>
+          </div>
+        </details>
         <div class="row" style="margin-top:16px">
           <button class="go" id="generate">Generate bullet time</button>
           <span class="muted" id="estimate"></span>
@@ -100,7 +136,7 @@ label.inline{display:flex;gap:8px;align-items:center;color:var(--dim)}
 
   <section class="card hidden" id="runCard">
     <h2>4 · Making it</h2>
-    <div class="steps"><span class="step" data-s="stills">8 views of the moment · Qwen</span><span class="step" data-s="orbit">camera through frozen time · LTX-2.3</span><span class="step" data-s="render">splice into your take</span></div>
+    <div class="steps"><span class="step" data-s="stills">8 views of the moment · Qwen</span><span class="step" data-s="orbit">camera through frozen time · LTX-2.3</span><span class="step" data-s="upscale">upscale · SeedVR2</span><span class="step" data-s="render">splice into your take</span></div>
     <p class="muted" id="runMsg"></p>
     <p class="err" id="runErr"></p>
   </section>
@@ -113,11 +149,18 @@ label.inline{display:flex;gap:8px;align-items:center;color:var(--dim)}
         <div class="row">
           <a id="dl" download><button class="go">Download video</button></a>
           <a id="dlLoop" download><button>Download freeze loop</button></a>
+          <a id="dlExport"><button>Studio export (ProRes + timeline)</button></a>
           <a id="dlWf"><button>ComfyUI workflows</button></a>
         </div>
         <div class="row" style="margin-top:14px">
           <button id="reroll">Re-roll the orbit</button>
           <button id="newStills">New views + orbit</button>
+          <button id="fixViewsBtn" class="hidden">Fix rejected views</button>
+          <button id="upscaleBtn">Upscale orbit (SeedVR2)</button>
+        </div>
+        <div id="variantsBox" class="hidden" style="margin-top:14px">
+          <h2>Variants</h2>
+          <div class="variants" id="variantList"></div>
         </div>
         <div class="row" style="margin-top:14px">
           <label class="inline">Slow-mo ramp <input type="range" id="ramp" min="0" max="1.2" step="0.1" value="0.4"> <span id="rampV">0.4 s</span></label>
