@@ -60,6 +60,38 @@ def create_app(data_dir: str | Path):
             resp.set_cookie(COOKIE, H.new_cookie(), max_age=400 * 86400, httponly=True, samesite="lax", secure=https)
         return resp
 
+    # Startup: no job thread survives a restart (a deploy, or Fly stopping the idle machine), so a project whose
+    # state still says "running" is an orphan. Mark it stopped so the page offers the step again.
+    for d in projects.iterdir():
+        try:
+            st = d / "state.json"
+            s = json.loads(st.read_text()) if st.exists() else {}
+            if (s.get("job") or {}).get("status") == "running":
+                s["job"].update(status="error", updated=time.time(),
+                                error="interrupted by a server restart, run this step again")
+                tmp = st.with_suffix(".tmp")
+                tmp.write_text(json.dumps(s, indent=2))
+                tmp.replace(st)
+                print(f"[bullettime] recovered orphaned job in project {d.name}", flush=True)
+        except (OSError, ValueError, AttributeError):
+            pass
+
+    # Fly stops an idle machine when its proxy sees no requests for a few minutes. A visitor who locks the phone
+    # mid-orbit stops polling, so while a job runs the app pings its own public URL (through Fly's proxy) to count
+    # as traffic. Fly's own health checks don't go through the proxy and don't keep it awake.
+    keepalive_url = (os.environ.get("BULLETTIME_SITE_URL") or "").rstrip("/")
+    if keepalive_url and os.environ.get("FLY_APP_NAME"):
+        def keepalive():
+            import urllib.request
+            while True:
+                time.sleep(60)
+                if any(lk.locked() for lk in list(locks.values())):
+                    try:
+                        urllib.request.urlopen(keepalive_url + "/api/health", timeout=15).read()
+                    except Exception:  # noqa: BLE001
+                        pass
+        threading.Thread(target=keepalive, daemon=True).start()
+
     if H.ttl_minutes:
         def janitor():
             while True:
